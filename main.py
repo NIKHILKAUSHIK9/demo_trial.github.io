@@ -203,6 +203,13 @@ def _csv(df, name):
 
 
 # ------------------------------- endpoints -------------------------------
+@app.get('/_stcore/health')
+@app.get('/healthz')
+def platform_health():
+    """Health probe for hosts that check the Streamlit path (Streamlit Community Cloud runs `streamlit run main.py` and serves this ASGI app)."""
+    return Response('ok', media_type='text/plain')
+
+
 @app.get(API_PREFIX + '/health')
 def health():
     return dict(status='ok', engine='python', modules=['ocmass_gmm', 'ocmass_extinction_isochrone', 'ocmass_imf'])

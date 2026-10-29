@@ -2,21 +2,32 @@
 
 ## Why Streamlit Community Cloud shows "responding 404 to health checks"
 
-Streamlit Community Cloud only runs **Streamlit apps** (a Python file that calls `import streamlit`). StarNest is a plain web page plus a **FastAPI** server,
-so no Streamlit server ever starts on the platform and its health check (`/_stcore/health`) gets a 404. No setting in the dashboard can fix this: the entry file must be a Streamlit app.
+Recent Streamlit versions detect an ASGI app (such as the FastAPI `app` in `main.py`) in the main file and serve it themselves. The platform then probes
+`/_stcore/health`; the FastAPI app had no such route and answered 404. Reproduced locally with `streamlit run main.py` (Streamlit 1.66).
+**Fix (in `main.py` since this version): the route `/_stcore/health` now returns `ok`.** With the main file set to `main.py` the **full app** (including IRSA + PARSEC) is served on streamlit.io.
 
 ## Choose a route
 
 | Route | What works | What does not | Effort | Cost |
 |---|---|---|---|---|
+| **A0. streamlit.io with `main.py`** | **Everything** | Possible IRSA/CMD limits from the cloud address | Update `main.py`, reboot | free |
 | **A. Streamlit wrapper** (`streamlit_app/streamlit_app.py`) | Page, GMM, kinematics, IMF, team photos (browser engine) | IRSA extinction and PARSEC isochrone | 5 min, on the platform you already use | free |
 | **B. Render.com** (`render.yaml`) | **Everything**, including IRSA + PARSEC (the server makes those requests, so no CORS) | Free tier sleeps after about 15 min idle (first load ~30-60 s); 512 MB RAM | 10 min | free tier |
 | **C. Hugging Face Spaces** (`Dockerfile`) | Everything | Same cold start behaviour; needs the README header below | 10 min | free tier |
 | **D. GitHub Pages** | Page, GMM, kinematics, IMF | IRSA + PARSEC | 3 min | free |
 
-Recommendation: **B** for the real research tool, **A or D** as a quick public demo.
+Recommendation: **A0** if you want to stay on streamlit.io; **B** for the real research tool, **A or D** as a quick public demo.
 
-## Route A: keep streamlit.io (browser-only mode)
+## Route A0: streamlit.io with `main.py` as the main file (full app)
+
+1. Push the repository with this `main.py`.
+2. Keep the app's main file path as `main.py` (the file in the repository root).
+3. **Reboot app** in the manage menu. The health check now gets 200 and `https://<your-app>.streamlit.app` shows StarNest with "Engine: Python backend".
+4. If the repository has an extra folder level (for example `StarNest-OCMass/main.py`), the main file path must include it.
+
+Limits: Community Cloud memory is small; IRSA/CMD may behave differently from a cloud address. Sessions are in memory.
+
+## Route A: keep streamlit.io (browser-only wrapper)
 
 1. Push the repository (already done).
 2. share.streamlit.io → your app → **Settings** (or create a new app).

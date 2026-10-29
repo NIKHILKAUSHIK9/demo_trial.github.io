@@ -7,7 +7,9 @@
     const PAGE_ORDER = ['home', 'membership', 'isochrone', 'kinematics', 'imf'];
     let currentPage = 'home';
     let isTransitioning = false;
-    const API_BASE = 'http://localhost:8000/api';
+    // Backend address: set window.STARNEST_API_BASE to override. Served over http(s) by the backend -> same origin ('/api');
+    // opened from a file -> the local backend.
+    const API_BASE = window.STARNEST_API_BASE || ((location.protocol === 'http:' || location.protocol === 'https:') ? location.origin + '/api' : 'http://localhost:8000/api');
 
     const taskSources = {
       isochrone: { mode: 'gmm', customFile: null, customLabel: null },
@@ -111,6 +113,8 @@
     };
     function loadTeamPhotos() {
       document.querySelectorAll('img[data-photo]').forEach(img => {
+        const embedded = window.STARNEST_PHOTOS && img.dataset.photo.split(',').map(st => window.STARNEST_PHOTOS[st]).find(Boolean);   // photos inlined by a host page (Streamlit)
+        if (embedded) { img.src = embedded; img.style.display = ''; if (img.nextElementSibling) img.nextElementSibling.style.display = 'none'; return; }
         const cands = [];
         TEAM_PHOTO_CONFIG.dirs.forEach(d => img.dataset.photo.split(',').forEach(stem => TEAM_PHOTO_CONFIG.exts.forEach(x => cands.push(`${d}${stem}.${x}`))));
         const tryNext = i => {
@@ -1558,6 +1562,7 @@
       if (backendProbe && !force) return backendProbe;
       backendProbe = (async () => {
         try {
+          if (window.STARNEST_NO_BACKEND) throw new Error('backend disabled by the host page');     // e.g. embedded in Streamlit
           const c = new AbortController();
           const t = setTimeout(() => c.abort(), API_PROBE_TIMEOUT_MS);
           const r = await fetch(API_BASE + '/health', { signal: c.signal });

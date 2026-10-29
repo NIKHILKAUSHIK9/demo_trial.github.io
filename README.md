@@ -22,6 +22,8 @@ Open **http://localhost:8000** in a browser.
 | Full (recommended) | `uvicorn main:app --port 8000`, open `http://localhost:8000` | Everything, incl. IRSA E(B-V) and the PARSEC isochrone from CMD 3.8 |
 | Browser only | open `index.html` (or GitHub Pages) | GMM, kinematics, IMF, isochrone plot with a **typed** E(B-V) but **no** PARSEC (IRSA and CMD refuse direct browser requests: CORS) |
 
+**Publishing online:** see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) (Render / Hugging Face for the full app, Streamlit or GitHub Pages for a browser-only demo).
+
 The page loads Tailwind, GSAP, Plotly, Font Awesome and the Inter font from CDNs, so it needs internet access.
 
 ## Input file
@@ -52,7 +54,9 @@ ocmass_extinction_isochrone.py  stage 2: IRSA + CMD 3.8 + fit
 ocmass_imf.py               stage 4: mass function
 tools/netcheck.py           tests the network path to IRSA and CMD
 tools/cmd_probe.py          prints the live CMD form fields (debugging)
-docs/                       project documentation, GitHub guide, development notes
+streamlit_app/              Streamlit Cloud wrapper (browser-only mode)
+Dockerfile, render.yaml     deployment of the full app
+docs/                       project documentation, GitHub guide, deployment guide, development notes
 ```
 Every Python module has a `GLOBAL CONFIGURATION` block at the top: change thresholds and paths there, not inside functions.
 The Python modules contain no UI code and can be imported on their own, e.g. `import ocmass_gmm as g; g.run_gmm(...)`.
@@ -67,7 +71,7 @@ Environment switches: `OCMASS_NO_PROXY=1`, `OCMASS_PROXY=http://host:port`, `OCM
 - Star classification thresholds (white dwarf / giant / pre-main-sequence) are uncalibrated heuristics.
 - IRSA's "SFD mean" is a regional mean (≥ 2°) of the total line-of-sight dust: it over-estimates E(B-V) for nearby clusters.
 - The isochrone stage compares a **chosen** logAge and [M/H]; it does not search for the best age.
-- The backend keeps one session in memory (local use); add per-session ids before hosting it publicly.
+- Backend sessions live in memory (one per visitor, expire after 6 h idle, at most 20); a restart forgets them.
 - Browser-only mode cannot reach IRSA or CMD.
 
 ## Citing

@@ -4,7 +4,8 @@ Run:   pip install -r requirements.txt fastapi uvicorn python-multipart
        uvicorn main:app --host 127.0.0.1 --port 8000
 The front end probes GET /api/health; if it answers, every analysis call goes here (real GMM-BIC, IRSA
 extinction, PARSEC isochrone, isochrone-based masses). Otherwise the page falls back to its in-browser engine.
-Single-user local server: state is kept in memory (STATE).
+State is kept in memory PER VISITOR: the page served from '/' sets a cookie (sn_sid); every request is mapped to its own STATE.
+Requests without the cookie (page opened from a file, local use) share one 'default' session. Idle sessions expire; at most SESSION_MAX are kept.
 
 TERMINOLOGY
   members_latest.csv : GMM output (PMemb >= cutoff)   |  analysis : members + extinction/DM/colour/mass/type
@@ -16,16 +17,19 @@ WORKFLOW
 """
 from __future__ import annotations
 
+import contextvars
 import io
 import math
 import sklearn
 import os
 import re
+import time
+import uuid
 from functools import lru_cache
 
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -43,12 +47,52 @@ EVOLVED_TYPES = {'White Dwarf', 'Red Giant / Supergiant'}      # masses from L(M
 IMF_LOG_AGE_SPLIT = 7.0                                        # < 7.0 (10 Myr) -> 'IMF', else 'Present-day MF'
 COMPLETENESS_G50, COMPLETENESS_W = 17.2, 0.65                  # ASSUMED curve (flagged assumed=True)
 KEEP_ROWS_MAX = 250000
+SESSION_COOKIE = 'sn_sid'
+SESSION_MAX = 20                                               # sessions kept in memory (oldest idle one is dropped)
+SESSION_TTL_S = 6 * 3600                                       # idle time after which a session is dropped
+MAX_UPLOAD_MB = 50
 # =================================================================
 
-STATE: dict = dict(files={}, members=None, analysis=None, iso=None, parsec=None, imf_bins=None, imf_chi2=None, name='Cluster')
+def _new_state() -> dict:
+    return dict(files={}, members=None, analysis=None, iso=None, parsec=None, imf_bins=None, imf_chi2=None, name='Cluster')
+
+
+_SESSIONS: dict = {}                                           # sid -> {'s': state dict, 't': last use}
+_sid_var: contextvars.ContextVar = contextvars.ContextVar('sn_sid', default='default')
+
+
+class _SessionState:
+    """dict-like view of the CURRENT visitor's state (the visitor is set per request by the middleware below)."""
+    def _d(self) -> dict:
+        sid, now = _sid_var.get(), time.time()
+        for k in [k for k, v in _SESSIONS.items() if k != 'default' and now - v['t'] > SESSION_TTL_S]:
+            _SESSIONS.pop(k, None)
+        if sid not in _SESSIONS:
+            while len(_SESSIONS) >= SESSION_MAX:
+                _SESSIONS.pop(min(_SESSIONS, key=lambda k: _SESSIONS[k]['t']), None)
+            _SESSIONS[sid] = dict(s=_new_state(), t=now)
+        _SESSIONS[sid]['t'] = now
+        return _SESSIONS[sid]['s']
+
+    def __getitem__(self, k): return self._d()[k]
+    def __setitem__(self, k, v): self._d()[k] = v
+    def get(self, k, default=None): return self._d().get(k, default)
+    def __contains__(self, k): return k in self._d()
+
+
+STATE = _SessionState()
 
 app = FastAPI(title='StarNest OCMass backend')
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'])
+
+
+@app.middleware('http')
+async def _session_middleware(request: Request, call_next):
+    tok = _sid_var.set(request.cookies.get(SESSION_COOKIE) or 'default')
+    try:
+        return await call_next(request)
+    finally:
+        _sid_var.reset(tok)
 
 
 # ------------------------------- helpers -------------------------------
@@ -167,8 +211,11 @@ def health():
 @app.post(API_PREFIX + '/upload-raw')
 async def upload_raw(file: UploadFile = File(...)):
     name = re.sub(r'[^A-Za-z0-9._-]', '_', os.path.basename(file.filename or 'upload.csv'))
+    raw = await file.read()
+    if len(raw) > MAX_UPLOAD_MB * 1024 * 1024:
+        raise HTTPException(413, f'File larger than {MAX_UPLOAD_MB} MB.')
     try:
-        df = GMM.load_raw(io.BytesIO(await file.read()))
+        df = GMM.load_raw(io.BytesIO(raw))
     except Exception as e:
         raise HTTPException(400, f'Could not read CSV: {e}')
     if len(df) > KEEP_ROWS_MAX:
@@ -514,7 +561,10 @@ for _d in ('assets', 'images'):
 
 
 @app.get('/')
-def index():
+def index(request: Request):
     if os.path.exists(FRONTEND_HTML):
-        return FileResponse(FRONTEND_HTML)
+        resp = FileResponse(FRONTEND_HTML)
+        if not request.cookies.get(SESSION_COOKIE):                # a new visitor gets a private session
+            resp.set_cookie(SESSION_COOKIE, uuid.uuid4().hex, max_age=SESSION_TTL_S, httponly=True, samesite='lax')
+        return resp
     raise HTTPException(404, 'Put the front end next to backend.py as index.html to serve it here.')

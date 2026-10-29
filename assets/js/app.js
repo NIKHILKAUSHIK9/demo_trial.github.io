@@ -7,9 +7,10 @@
     const PAGE_ORDER = ['home', 'membership', 'isochrone', 'kinematics', 'imf'];
     let currentPage = 'home';
     let isTransitioning = false;
-    // Backend address: set window.STARNEST_API_BASE to override. Served over http(s) by the backend -> same origin ('/api');
-    // opened from a file -> the local backend.
-    const API_BASE = window.STARNEST_API_BASE || ((location.protocol === 'http:' || location.protocol === 'https:') ? location.origin + '/api' : 'http://localhost:8000/api');
+    // Backend address: set window.STARNEST_API_BASE to override. Served over http(s) by the backend -> 'api' next to the page
+    // ('/api' at the site root, '/starnest/api' when the backend is mounted under /starnest); opened from a file -> the local backend.
+    const API_BASE = window.STARNEST_API_BASE || ((location.protocol === 'http:' || location.protocol === 'https:')
+      ? location.origin + location.pathname.replace(/[^/]*$/, '') + 'api' : 'http://localhost:8000/api');
 
     const taskSources = {
       isochrone: { mode: 'gmm', customFile: null, customLabel: null },

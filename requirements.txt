@@ -9,3 +9,4 @@ fastapi
 uvicorn
 python-multipart
 requests
+streamlit>=1.66

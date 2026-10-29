@@ -1,29 +1,31 @@
 # Publishing the web app
 
-## Why Streamlit Community Cloud shows "responding 404 to health checks"
+## Streamlit Community Cloud: what the platform needs
 
-Recent Streamlit versions detect an ASGI app (such as the FastAPI `app` in `main.py`) in the main file and serve it themselves. The platform then probes
-`/_stcore/health`; the FastAPI app had no such route and answered 404. Reproduced locally with `streamlit run main.py` (Streamlit 1.66).
-**Fix (in `main.py` since this version): the route `/_stcore/health` now returns `ok`.** With the main file set to `main.py` the **full app** (including IRSA + PARSEC) is served on streamlit.io.
+Streamlit runs the main file and, if it finds an ASGI object called `app` (the FastAPI app), serves that object itself. Two things followed:
+1. The platform health probe `/_stcore/health` returned 404 -> "responding 404 to health checks". `main.py` now answers it.
+2. A bare FastAPI page passes the probe but is not a Streamlit app, so the platform page kept loading ("buffering"). **Fix (in `main.py` since this version):** when started by Streamlit, `app` becomes `st.App(streamlit_page.py, routes=[Mount('/starnest', FastAPI app)])`. Streamlit serves a genuine Streamlit page (`streamlit_page.py`), which embeds the complete StarNest page and its Python API (mounted at `/starnest`) in a full-width frame. Under `uvicorn main:app` (Render, Hugging Face, local) nothing changes.
+
+Tested locally with `streamlit run main.py` (Streamlit 1.66): `/_stcore/health`, `/`, `/starnest/api/health` return 200; the badge reads "Engine: Python backend"; GMM on UPK 545 gives 34 members, K = 4. **Not tested on Community Cloud itself** (not reachable from the build environment); if it still fails there, use route B or C.
 
 ## Choose a route
 
 | Route | What works | What does not | Effort | Cost |
 |---|---|---|---|---|
-| **A0. streamlit.io with `main.py`** | **Everything** | Possible IRSA/CMD limits from the cloud address | Update `main.py`, reboot | free |
+| **A0. streamlit.io with `main.py`** | **Everything** (Streamlit page embeds the full app) | Untested on Community Cloud; possible IRSA/CMD limits from the cloud address | Update repo, reboot | free |
 | **A. Streamlit wrapper** (`streamlit_app/streamlit_app.py`) | Page, GMM, kinematics, IMF, team photos (browser engine) | IRSA extinction and PARSEC isochrone | 5 min, on the platform you already use | free |
 | **B. Render.com** (`render.yaml`) | **Everything**, including IRSA + PARSEC (the server makes those requests, so no CORS) | Free tier sleeps after about 15 min idle (first load ~30-60 s); 512 MB RAM | 10 min | free tier |
 | **C. Hugging Face Spaces** (`Dockerfile`) | Everything | Same cold start behaviour; needs the README header below | 10 min | free tier |
 | **D. GitHub Pages** | Page, GMM, kinematics, IMF | IRSA + PARSEC | 3 min | free |
 
-Recommendation: **A0** if you want to stay on streamlit.io; **B** for the real research tool, **A or D** as a quick public demo.
+Recommendation: **A0** to stay on streamlit.io (fallback **A**); **B** for the real research tool; **D** as a quick public demo.
 
 ## Route A0: streamlit.io with `main.py` as the main file (full app)
 
 1. Push the repository with this `main.py`.
 2. Keep the app's main file path as `main.py` (the file in the repository root).
-3. **Reboot app** in the manage menu. The health check now gets 200 and `https://<your-app>.streamlit.app` shows StarNest with "Engine: Python backend".
-4. If the repository has an extra folder level (for example `StarNest-OCMass/main.py`), the main file path must include it.
+3. **Reboot app** in the manage menu. Files needed in the repository root: `main.py`, `streamlit_page.py`, `requirements.txt` (includes `streamlit`), `assets/`, `images/`, `ocmass_*.py`, `index.html`. The app shows the StarNest page with "Engine: Python backend".
+4. If the first load seems stuck, press Reboot app once and wait ~1 min (dependencies install). If the repository has an extra folder level (for example `StarNest-OCMass/main.py`), the main file path must include it.
 
 Limits: Community Cloud memory is small; IRSA/CMD may behave differently from a cloud address. Sessions are in memory.
 

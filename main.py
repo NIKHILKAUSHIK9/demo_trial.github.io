@@ -207,7 +207,7 @@ def _csv(df, name):
 @app.get('/_stcore/health')
 @app.get('/healthz')
 def platform_health():
-    """Health probe for hosts that check the Streamlit path (Streamlit Community Cloud runs `streamlit run main.py` and serves this ASGI app)."""
+    """Simple health probe for hosts that request /healthz or /_stcore/health."""
     return Response('ok', media_type='text/plain')
 
 
@@ -576,15 +576,3 @@ def index(request: Request):
             resp.set_cookie(SESSION_COOKIE, uuid.uuid4().hex, max_age=SESSION_TTL_S, httponly=True, samesite='lax')
         return resp
     raise HTTPException(404, 'Put the front end next to backend.py as index.html to serve it here.')
-
-
-# ---- Streamlit Community Cloud: `streamlit run main.py` ----------------------------------------------------------
-# Streamlit serves whatever ASGI object is called `app` in the main file and its platform waits for the Streamlit
-# front end to load. So under Streamlit, `app` becomes st.App (a tiny Streamlit page, streamlit_page.py, that embeds
-# the real StarNest page) with this FastAPI app mounted at /starnest. Under `uvicorn main:app` nothing changes.
-if 'streamlit.web.bootstrap' in sys.modules:
-    import streamlit as _st
-    from starlette.routing import Mount
-    _api_app = app
-    app = _st.App(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'streamlit_page.py'),
-                  routes=[Mount('/starnest', app=_api_app)])

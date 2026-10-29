@@ -1,12 +1,13 @@
-numpy
-pandas
-scipy
-scikit-learn
-matplotlib
-astropy
-astroquery
-fastapi
-uvicorn
-python-multipart
-requests
-streamlit>=1.66
+# Streamlit ASGI App + the StarNest Python analysis backend
+streamlit==1.66.0
+numpy>=1.26,<3
+pandas>=2.1,<3
+scipy>=1.11,<2
+scikit-learn>=1.4,<2
+matplotlib>=3.8,<4
+astropy>=6.0,<8
+astroquery>=0.4.7,<0.5
+fastapi>=0.110,<1
+uvicorn>=0.30,<1
+python-multipart>=0.0.9
+requests>=2.31,<3

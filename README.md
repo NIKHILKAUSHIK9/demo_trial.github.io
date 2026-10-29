@@ -22,7 +22,7 @@ Open **http://localhost:8000** in a browser.
 | Full (recommended) | `uvicorn main:app --port 8000`, open `http://localhost:8000` | Everything, incl. IRSA E(B-V) and the PARSEC isochrone from CMD 3.8 |
 | Browser only | open `index.html` (or GitHub Pages) | GMM, kinematics, IMF, isochrone plot with a **typed** E(B-V) but **no** PARSEC (IRSA and CMD refuse direct browser requests: CORS) |
 
-**Publishing online:** see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) (Render / Hugging Face for the full app, Streamlit or GitHub Pages for a browser-only demo).
+**Publishing online:** for Streamlit Community Cloud with the Python backend, choose the root `streamlitapp.py` as the Main file path. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for GitHub setup, health checks, Render / Hugging Face alternatives, and the browser-only demo distinction.
 
 The page loads Tailwind, GSAP, Plotly, Font Awesome and the Inter font from CDNs, so it needs internet access.
 
@@ -54,8 +54,9 @@ ocmass_extinction_isochrone.py  stage 2: IRSA + CMD 3.8 + fit
 ocmass_imf.py               stage 4: mass function
 tools/netcheck.py           tests the network path to IRSA and CMD
 tools/cmd_probe.py          prints the live CMD form fields (debugging)
-streamlit_page.py            Streamlit page used when main.py is run by Streamlit (embeds the full app)
-streamlit_app/              Alternative Streamlit wrapper (browser-only mode)
+streamlitapp.py              Streamlit ASGI entry point: mounts the full FastAPI backend
+streamlit_page.py            Streamlit page shell that embeds the StarNest HTML at /starnest/
+streamlit_app/              Legacy lightweight wrapper (browser-only mode; not full backend)
 Dockerfile, render.yaml     deployment of the full app
 docs/                       project documentation, GitHub guide, deployment guide, development notes
 ```

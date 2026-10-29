@@ -1,10 +1,10 @@
 # ===== GLOBAL CONFIGURATION =====
 PAGE_TITLE = "StarNest - Open Star Cluster Analysis"
-PAGE_URL = "/starnest/"            # where main.py mounts the StarNest page + API under Streamlit
+PAGE_URL = "/starnest/"            # FastAPI page + API mounted by streamlitapp.py
 FRAME_HEIGHT = 1000                # px
 # ================================
-# Streamlit page used ONLY when the app runs under `streamlit run main.py` (Streamlit Community Cloud).
-# Workflow: Streamlit loads this script (so the platform's health/handshake checks succeed) -> it embeds the
+# Streamlit page used by the root `streamlitapp.py` ASGI entry point (Streamlit Community Cloud).
+# Workflow: the Streamlit ASGI app serves this script and mounts the backend -> this script embeds the
 # full StarNest page (served by the FastAPI app mounted at PAGE_URL) in a full-width frame.
 import streamlit as st
 import streamlit.components.v1 as components

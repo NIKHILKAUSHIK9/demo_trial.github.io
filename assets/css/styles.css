@@ -1,0 +1,135 @@
+/* StarNest UI styles (extracted from index.html) */
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #050810;
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(0, 212, 255, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(124, 58, 237, 0.04) 0%, transparent 50%);
+}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.08); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 212, 255, 0.3); }
+* { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.08) transparent; }
+
+
+/* GMM page: on wide screens the parameter panel (left) and the plots (right) scroll independently */
+@media (min-width: 1024px) {
+  #page-membership { overflow-y: hidden; }
+  #page-membership .gmm-split { height: 100%; }
+  #page-membership .gmm-scroll { height: 100%; overflow-y: auto; overscroll-behavior: contain; }
+  #gmm-results-scroll { padding-right: 4px; }
+}
+
+.page-section {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; }
+
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+input[type=range]:hover { background: rgba(255, 255, 255, 0.14); }
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #00d4ff;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+input[type=range]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 16px rgba(0, 212, 255, 0.6);
+}
+
+.dropzone-dragover {
+  border-color: #00d4ff !important;
+  background-color: rgba(0, 212, 255, 0.06) !important;
+  box-shadow: inset 0 0 20px rgba(0, 212, 255, 0.05);
+}
+
+.tooltip-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: help;
+}
+.tooltip-trigger::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: rgba(10, 14, 26, 0.96);
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  color: #d1d5db;
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 8px 12px;
+  border-radius: 8px;
+  white-space: normal;
+  width: max-content;
+  max-width: 240px;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+  z-index: 1000;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  font-weight: 400;
+}
+.tooltip-trigger:hover::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+#toast-container > div { pointer-events: auto; }
+.toast {
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+.toast-info { background: rgba(0, 212, 255, 0.12); border-color: rgba(0, 212, 255, 0.25); }
+.toast-success { background: rgba(34, 197, 94, 0.14); border-color: rgba(34, 197, 94, 0.3); }
+.toast-error { background: rgba(239, 68, 68, 0.14); border-color: rgba(239, 68, 68, 0.3); }
+.toast-warning { background: rgba(250, 204, 21, 0.14); border-color: rgba(250, 204, 21, 0.3); }
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(0, 212, 255, 0.2);
+}
+
+.js-plotly-plot .plotly .modebar { background: transparent !important; }
+.js-plotly-plot .plotly .modebar-btn { color: rgba(255, 255, 255, 0.35) !important; }
+.js-plotly-plot .plotly .modebar-btn:hover,
+.js-plotly-plot .plotly .modebar-btn.active { color: #00d4ff !important; }

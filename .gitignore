@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# outputs written by the pipeline / diagnostic tools
+ocmass_output/
+cmd_probe_out/
+*_members.csv
+*_extinction_corrected.csv
+
+# your own data (Gaia query results etc.) - add what you want to share explicitly
+data/
+*.npy
+
+# editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

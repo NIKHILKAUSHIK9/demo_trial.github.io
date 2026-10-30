@@ -1,0 +1,12 @@
+streamlit>=1.40
+numpy
+pandas
+scipy
+scikit-learn
+matplotlib
+astropy
+astroquery
+fastapi
+httpx
+python-multipart
+requests

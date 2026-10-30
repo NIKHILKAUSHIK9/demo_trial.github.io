@@ -1,0 +1,11 @@
+numpy
+pandas
+scipy
+scikit-learn
+matplotlib
+astropy
+astroquery
+fastapi
+uvicorn
+python-multipart
+requests

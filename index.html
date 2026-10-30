@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StarNest — Open Star Cluster Analysis</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="assets/js/tailwind-config.js"></script>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body class="bg-space-950 text-white font-sans min-h-screen flex flex-col">
+
+  <div id="loading-overlay" class="fixed inset-0 z-[100] bg-space-950 flex items-center justify-center">
+    <div class="text-center">
+      <div class="relative w-16 h-16 mx-auto mb-4">
+        <div class="absolute inset-0 border-2 border-accent-cyan/20 rounded-full"></div>
+        <div class="absolute inset-0 border-2 border-transparent border-t-accent-cyan rounded-full animate-spin"></div>
+        <i class="fas fa-star text-accent-cyan text-lg absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></i>
+      </div>
+      <p class="text-gray-400 text-sm">Initializing StarNest...</p>
+    </div>
+  </div>
+
+  <!-- NAV BAR -->
+  <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 bg-space-950/85 backdrop-blur-lg border-b border-white/[0.06]">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3 cursor-pointer" onclick="navigateToPage('home')">
+        <i class="fas fa-star text-accent-cyan text-xl"></i>
+        <span class="text-lg font-bold">Star<span class="text-accent-cyan">Nest</span></span>
+        <span id="engine-status-badge" class="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-0.5 rounded-full bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/20">
+          <span class="w-1.5 h-1.5 rounded-full bg-accent-cyan animate-pulse"></span> Live Engine Ready
+        </span>
+      </div>
+      <div id="nav-links" class="relative flex items-center gap-1 bg-white/[0.03] border border-white/[0.06] rounded-full px-1 py-1">
+        <div id="nav-pill" class="absolute h-8 bg-gradient-to-r from-accent-cyan/20 to-accent-violet/20 border border-accent-cyan/30 rounded-full transition-none"></div>
+        <button data-page="home" class="nav-btn relative z-10 px-4 py-1.5 text-sm font-medium rounded-full transition-colors text-white">Home</button>
+        <button data-page="membership" class="nav-btn relative z-10 px-4 py-1.5 text-sm font-medium rounded-full transition-colors text-gray-400 hover:text-white">Membership</button>
+        <button data-page="isochrone" class="nav-btn relative z-10 px-4 py-1.5 text-sm font-medium rounded-full transition-colors text-gray-400 hover:text-white">Isochrone</button>
+        <button data-page="kinematics" class="nav-btn relative z-10 px-4 py-1.5 text-sm font-medium rounded-full transition-colors text-gray-400 hover:text-white">Kinematics</button>
+        <button data-page="imf" class="nav-btn relative z-10 px-4 py-1.5 text-sm font-medium rounded-full transition-colors text-gray-400 hover:text-white">IMF</button>
+      </div>
+    </div>
+  </nav>
+
+  <main id="pages-container" class="relative mt-16 overflow-hidden flex-1" style="min-height: calc(100vh - 4rem)">
+
+    <!-- PAGE: HOME -->
+    <section id="page-home" class="page-section absolute inset-0 overflow-y-auto p-6">
+      <div class="max-w-4xl mx-auto text-center mt-10 mb-16">
+        <p class="text-accent-cyan/60 text-xs uppercase tracking-[0.3em] mb-4 font-medium">Gaia DR3 Pipeline</p>
+        <div class="w-16 h-px bg-gradient-to-r from-transparent via-accent-cyan/50 to-transparent mx-auto mb-6"></div>
+        <h1 class="text-4xl md:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-accent-cyan via-accent-purple to-accent-violet leading-tight mb-6">Photometric &amp; Kinematic Study of Young Open Star Clusters</h1>
+        <p class="text-gray-400 leading-relaxed text-base max-w-2xl mx-auto mb-4">This application provides a comprehensive pipeline for analyzing young open star clusters using Gaia DR3 data. It covers membership probability determination via Gaussian Mixture Models, isochrone fitting with extinction correction, stellar evolutionary stage labeling, kinematic analysis in Galactocentric/Heliocentric coordinates, and Initial Mass Function derivation.</p>
+        <p class="text-gray-400 leading-relaxed text-base max-w-2xl mx-auto">Data filtration parameters include parallax bounds ($\sigma_\pi/\pi$), proper motion selections ($\mu_{\alpha*}, \mu_\delta$), G-band photometric errors, and Renormalized Unit Weight Error (RUWE) thresholds to ensure high-quality astrometric solutions from the Gaia catalog.</p>
+      </div>
+
+      <div class="max-w-6xl mx-auto mb-16">
+        <h2 class="text-xl font-bold mb-2 text-center">Research Team</h2>
+        <p class="text-gray-500 text-sm text-center mb-8">Photometric &amp; Kinematic Analysis of Young Open Star Clusters</p>
+
+        <!-- Mentors Row (2 cards centered) -->
+        <div class="flex flex-wrap justify-center gap-8 mb-8">
+          <!-- Mentor: Neelam Panwar -->
+          <div class="glass-card group relative rounded-2xl p-8 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl hover:border-accent-cyan/30 hover:bg-white/[0.05] transition-all duration-500 w-72 shadow-[0_0_30px_rgba(0,212,255,0.04)]">
+            <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-cyan/30 to-transparent"></div>
+            <div class="absolute top-3 right-3"><span class="text-[10px] uppercase tracking-widest text-accent-cyan/50 font-medium bg-accent-cyan/[0.06] px-2 py-0.5 rounded-full border border-accent-cyan/10">Mentor</span></div>
+            <div class="w-24 h-24 rounded-full bg-gradient-to-br from-accent-cyan/20 to-accent-violet/20 border-2 border-accent-cyan/30 p-0.5 flex items-center justify-center mx-auto mb-5 group-hover:scale-105 group-hover:border-accent-cyan/60 transition-all duration-500 overflow-hidden shadow-[0_0_20px_rgba(0,212,255,0.15)]">
+              <img data-photo="neelam_panwar,neelam-panwar,Neelam_Panwar,neelam" alt="Neelam Panwar" class="w-full h-full object-cover object-center rounded-full" style="display:none">
+              <span style="display:flex" class="w-full h-full items-center justify-center text-xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-accent-cyan to-accent-violet">NP</span>
+            </div>
+            <h3 class="text-lg font-semibold text-center">Neelam Panwar</h3>
+            <p class="text-accent-cyan/80 text-sm text-center mb-1">Research Supervisor</p>
+            <p class="text-gray-500 text-xs text-center mb-5">Scientist "D", ARIES Nainital</p>
+            <div class="flex items-center justify-center gap-4">
+              <a href="https://orcid.org/0000-0002-0151-2361" target="_blank" class="social-icon-link group/icon w-9 h-9 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center hover:-translate-y-1 hover:border-accent-cyan/40 hover:bg-accent-cyan/10 hover:shadow-[0_4px_20px_rgba(0,212,255,0.15)] transition-all duration-300" title="ORCID"><i class="fab fa-orcid text-gray-400 group-hover/icon:text-accent-cyan transition-colors text-sm"></i></a>
+              <a href="https://www.linkedin.com/in/neelam-panwar-1414081b/" target="_blank" class="social-icon-link group/icon w-9 h-9 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center hover:-translate-y-1 hover:border-accent-cyan/40 hover:bg-accent-cyan/10 hover:shadow-[0_4px_20px_rgba(0,212,255,0.15)] transition-all duration-300" title="LinkedIn"><i class="fab fa-linkedin-in text-gray-400 group-hover/icon:text-accent-cyan transition-colors text-sm"></i></a>
+            </div>
+          </div>
+
+          <!-- Mentor: Richa Kundu -->
+          <div class="glass-card group relative rounded-2xl p-8 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl hover:border-accent-cyan/30 hover:bg-white/[0.05] transition-all duration-500 w-72 shadow-[0_0_30px_rgba(0,212,255,0.04)]">
+            <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-cyan/30 to-transparent"></div>
+            <div class="absolute top-3 right-3"><span class="text-[10px] uppercase tracking-widest text-accent-cyan/50 font-medium bg-accent-cyan/[0.06] px-2 py-0.5 rounded-full border border-accent-cyan/10">Mentor</span></div>
+            <div class="w-24 h-24 rounded-full bg-gradient-to-br from-accent-cyan/20 to-accent-violet/20 border-2 border-accent-cyan/30 p-0.5 flex items-center justify-center mx-auto mb-5 group-hover:scale-105 group-hover:border-accent-cyan/60 transition-all duration-500 overflow-hidden shadow-[0_0_20px_rgba(0,212,255,0.15)]">
+              <img data-photo="richa_kundu,richa-kundu,Richa_Kundu,richa_kundu1,richa" alt="Richa Kundu" class="w-full h-full object-cover object-top rounded-full" style="display:none">
+              <span style="display:flex" class="w-full h-full items-center justify-center text-xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-accent-cyan to-accent-violet">RK</span>
+            </div>
+            <h3 class="text-lg font-semibold text-center">Richa Kundu</h3>
+            <p class="text-accent-cyan/80 text-sm text-center mb-1">Research Supervisor</p>
+            <p class="text-gray-500 text-xs text-center mb-5">Assistant Professor, Miranda House, (University of Delhi)</p>
+            <div class="flex items-center justify-center gap-4">
+              <a href="https://orcid.org/0000-0003-3466-6540" target="_blank" class="social-icon-link group/icon w-9 h-9 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center hover:-translate-y-1 hover:border-accent-cyan/40 hover:bg-accent-cyan/10 hover:shadow-[0_4px_20px_rgba(0,212,255,0.15)] transition-all duration-300" title="ORCID"><i class="fab fa-orcid text-gray-400 group-hover/icon:text-accent-cyan transition-colors text-sm"></i></a>
+              <a href="https://www.linkedin.com/in/richa-kundu-2ba28a141/" target="_blank" class="social-icon-link group/icon w-9 h-9 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center hover:-translate-y-1 hover:border-accent-cyan/40 hover:bg-accent-cyan/10 hover:shadow-[0_4px_20px_rgba(0,212,255,0.15)] transition-all duration-300" title="LinkedIn"><i class="fab fa-linkedin-in text-gray-400 group-hover/icon:text-accent-cyan transition-colors text-sm"></i></a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Researchers Row (4 cards) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <!-- Researcher: Nikhil Kaushik -->
+          <div class="glass-card group relative rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl hover:border-accent-violet/30 hover:bg-white/[0.05] transition-all duration-500 shadow-[0_0_25px_rgba(124,58,237,0.04)]">
+            <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-violet/20 to-transparent"></div>
+            <div class="w-20 h-20 rounded-full bg-gradient-to-br from-accent-violet/20 to-accent-cyan/20 border-2 border-accent-violet/30 p-0.5 flex items-center justify-center mx-auto mb-4 group-hover:scale-105 group-hover:border-accent-violet/60 transition-all duration-500 overflow-hidden shadow-[0_0_18px_rgba(124,58,237,0.15)]">
+              <img data-photo="nikhil_kaushik,nikhil-kaushik,Nikhil_Kaushik,nikhil_pic,nikhil" alt="Nikhil Kaushik" class="w-full h-full object-cover object-top rounded-full" style="display:none">
+              <span style="display:flex" class="w-full h-full items-center justify-center text-lg font-bold bg-clip-text text-transparent bg-gradient-to-br from-accent-violet to-accent-cyan">NK</span>
+            </div>
+            <h3 class="text-base font-semibold text-center">Nikhil Kaushik</h3>
+            <p class="text-accent-violet/80 text-xs text-center mb-1">Researcher</p>
+            <p class="text-gray-500 text-[11px] text-center mb-4">M.Sc. Physics, IIT Roorkee</p>
+            <div class="flex items-center justify-center gap-3">
+              <a href="https://orcid.org/0009-0000-0870-3665" target="_blank" class="social-icon-link group/icon w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center hover:-translate-y-1 hover:border-accent-violet/40 hover:bg-accent-violet/10 hover:shadow-[0_4px_20px_rgba(124,58,237,0.15)] transition-all duration-300" title="ORCID"><i class="fab fa-orcid text-gray-400 group-hover/icon:text-accent-violet transition-colors text-xs"></i></a>
+              <a href="https://www.linkedin.com/in/nikhilkaushik9" target="_blank" class="social-icon-link group/icon w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center hover:-translate-y-1 hover:border-accent-violet/40 hover:bg-accent-violet/10 hover:shadow-[0_4px_20px_rgba(124,58,237,0.15)] transition-all duration-300" title="LinkedIn"><i class="fab fa-linkedin-in text-gray-400 group-hover/icon:text-accent-violet transition-colors text-xs"></i></a>
+              <a href="https://github.com/NIKHILKAUSHIK9" target="_blank" class="social-icon-link group/icon w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center hover:-translate-y-1 hover:border-accent-violet/40 hover:bg-accent-violet/10 hover:shadow-[0_4px_20px_rgba(124,58,237,0.15)] transition-all duration-300" title="GitHub"><i class="fab fa-github text-gray-400 group-hover/icon:text-accent-violet transition-colors text-xs"></i></a>
+              <a href="https://nikhilkaushik9.github.io/NK-Portfolio/" target="_blank" class="social-icon-link group/icon w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center hover:-translate-y-1 hover:border-accent-violet/40 hover:bg-accent-violet/10 hover:shadow-[0_4px_20px_rgba(124,58,237,0.15)] transition-all duration-300" title="Portfolio"><i class="fas fa-briefcase text-gray-400 group-hover/icon:text-accent-violet transition-colors text-xs"></i></a>
+            </div>
+          </div>
+
+          <!-- Researcher: Pryanshu Basur -->
+          <div class="glass-card group relative rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl hover:border-accent-violet/30 hover:bg-white/[0.05] transition-all duration-500">
+            <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-violet/20 to-transparent"></div>
+            <div class="w-20 h-20 rounded-full bg-gradient-to-br from-accent-violet/20 to-accent-cyan/20 border-2 border-accent-violet/30 p-0.5 flex items-center justify-center mx-auto mb-4 group-hover:scale-105 group-hover:border-accent-violet/60 transition-all duration-500 overflow-hidden shadow-[0_0_18px_rgba(124,58,237,0.15)]">
+              <img data-photo="pryanshu_basur,priyanshu_basur,pryanshu-basur,Pryanshu_Basur,pryanshu_pic,pryanshu" alt="Pryanshu Basur" class="w-full h-full object-cover object-top rounded-full" style="display:none">
+              <span style="display:flex" class="w-full h-full items-center justify-center text-lg font-bold bg-clip-text text-transparent bg-gradient-to-br from-accent-violet to-accent-cyan">PB</span>
+            </div>
+            <h3 class="text-base font-semibold text-center">Pryanshu Basur</h3>
+            <p class="text-accent-violet/80 text-xs text-center mb-1">Researcher</p>
+            <p class="text-gray-500 text-[11px] text-center mb-4">M.Sc. Physics, IIT Mandi</p>
+            <div class="flex items-center justify-center gap-3">
+              <a href="https://orcid.org/0009-0000-8201-8850" target="_blank" class="social-icon-link group/icon w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center hover:-translate-y-1 hover:border-accent-violet/40 hover:bg-accent-violet/10 hover:shadow-[0_4px_20px_rgba(124,58,237,0.15)] transition-all duration-300" title="ORCID"><i class="fab fa-orcid text-gray-400 group-hover/icon:text-accent-violet transition-colors text-xs"></i></a>
+              <a href="http://www.linkedin.com/in/basurpryanshu" target="_blank" class="social-icon-link group/icon w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center hover:-translate-y-1 hover:border-accent-violet/40 hover:bg-accent-violet/10 hover:shadow-[0_4px_20px_rgba(124,58,237,0.15)] transition-all duration-300" title="LinkedIn"><i class="fab fa-linkedin-in text-gray-400 group-hover/icon:text-accent-violet transition-colors text-xs"></i></a>
+              <a href="https://github.com/pbasur" target="_blank" class="social-icon-link group/icon w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center hover:-translate-y-1 hover:border-accent-violet/40 hover:bg-accent-violet/10 hover:shadow-[0_4px_20px_rgba(124,58,237,0.15)] transition-all duration-300" title="GitHub"><i class="fab fa-github text-gray-400 group-hover/icon:text-accent-violet transition-colors text-xs"></i></a>
+              <a href="https://pbasur.github.io/Portfolio-Pryanshu/" target="_blank" class="social-icon-link group/icon w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center hover:-translate-y-1 hover:border-accent-violet/40 hover:bg-accent-violet/10 hover:shadow-[0_4px_20px_rgba(124,58,237,0.15)] transition-all duration-300" title="Portfolio"><i class="fas fa-briefcase text-gray-400 group-hover/icon:text-accent-violet transition-colors text-xs"></i></a>
+            </div>
+          </div>
+
+          <!-- Researcher: Monu -->
+          <div class="glass-card group relative rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl hover:border-accent-violet/30 hover:bg-white/[0.05] transition-all duration-500">
+            <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-violet/20 to-transparent"></div>
+            <div class="w-20 h-20 rounded-full bg-gradient-to-br from-accent-violet/20 to-accent-cyan/20 border-2 border-accent-violet/30 p-0.5 flex items-center justify-center mx-auto mb-4 group-hover:scale-105 group-hover:border-accent-violet/60 transition-all duration-500 overflow-hidden shadow-[0_0_18px_rgba(124,58,237,0.15)]">
+              <img data-photo="monu,monu_kumar,Monu,monu_pic" alt="Monu" class="w-full h-full object-cover object-top rounded-full" style="display:none">
+              <span style="display:flex" class="w-full h-full items-center justify-center text-lg font-bold bg-clip-text text-transparent bg-gradient-to-br from-accent-violet to-accent-cyan">M</span>
+            </div>
+            <h3 class="text-base font-semibold text-center">Monu</h3>
+            <p class="text-accent-violet/80 text-xs text-center mb-1">Researcher</p>
+            <p class="text-gray-500 text-[11px] text-center mb-4">M.Sc. Physics, Dept. of Physics and Astrophysics (University of Delhi)</p>
+            <div class="flex items-center justify-center gap-3">
+              <a href="https://orcid.org/0009-0001-6406-3735" target="_blank" class="social-icon-link group/icon w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center hover:-translate-y-1 hover:border-accent-violet/40 hover:bg-accent-violet/10 hover:shadow-[0_4px_20px_rgba(124,58,237,0.15)] transition-all duration-300" title="ORCID"><i class="fab fa-orcid text-gray-400 group-hover/icon:text-accent-violet transition-colors text-xs"></i></a>
+              <a href="https://www.linkedin.com/in/monu-kumar-22422a251/" target="_blank" class="social-icon-link group/icon w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center hover:-translate-y-1 hover:border-accent-violet/40 hover:bg-accent-violet/10 hover:shadow-[0_4px_20px_rgba(124,58,237,0.15)] transition-all duration-300" title="LinkedIn"><i class="fab fa-linkedin-in text-gray-400 group-hover/icon:text-accent-violet transition-colors text-xs"></i></a>
+            </div>
+          </div>
+
+          <!-- Researcher: Shruti Prasad -->
+          <div class="glass-card group relative rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl hover:border-accent-violet/30 hover:bg-white/[0.05] transition-all duration-500">
+            <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-violet/20 to-transparent"></div>
+            <div class="w-20 h-20 rounded-full bg-gradient-to-br from-accent-violet/20 to-accent-cyan/20 border-2 border-accent-violet/30 p-0.5 flex items-center justify-center mx-auto mb-4 group-hover:scale-105 group-hover:border-accent-violet/60 transition-all duration-500 overflow-hidden shadow-[0_0_18px_rgba(124,58,237,0.15)]">
+              <img data-photo="shruti_prasad,shruti-prasad,Shruti_Prasad,shruti_pic,shruti" alt="Shruti Prasad" class="w-full h-full object-cover object-top rounded-full" style="display:none">
+              <span style="display:flex" class="w-full h-full items-center justify-center text-lg font-bold bg-clip-text text-transparent bg-gradient-to-br from-accent-violet to-accent-cyan">SP</span>
+            </div>
+            <h3 class="text-base font-semibold text-center">Shruti Prasad</h3>
+            <p class="text-accent-violet/80 text-xs text-center mb-1">Researcher</p>
+            <p class="text-gray-500 text-[11px] text-center mb-4">Int. Phd Physics, IISc Bangluru</p>
+            <div class="flex items-center justify-center gap-3">
+              <a href="https://orcid.org/0009-0006-3540-8550" target="_blank" class="social-icon-link group/icon w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center hover:-translate-y-1 hover:border-accent-violet/40 hover:bg-accent-violet/10 hover:shadow-[0_4px_20px_rgba(124,58,237,0.15)] transition-all duration-300" title="ORCID"><i class="fab fa-orcid text-gray-400 group-hover/icon:text-accent-violet transition-colors text-xs"></i></a>
+              <a href="https://www.linkedin.com/in/shruti-prashad-6439b9283/" target="_blank" class="social-icon-link group/icon w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center hover:-translate-y-1 hover:border-accent-violet/40 hover:bg-accent-violet/10 hover:shadow-[0_4px_20px_rgba(124,58,237,0.15)] transition-all duration-300" title="LinkedIn"><i class="fab fa-linkedin-in text-gray-400 group-hover/icon:text-accent-violet transition-colors text-xs"></i></a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="max-w-6xl mx-auto mb-12">
+        <h2 class="text-xl font-bold mb-6 text-center">Quick Actions</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="glass-card group relative rounded-xl p-5 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm hover:border-accent-cyan/40 cursor-pointer transition-all duration-300" data-navigate="membership">
+            <i class="fas fa-users-gear text-2xl text-accent-cyan group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(0,212,255,0.5)]"></i>
+            <h4 class="text-sm font-medium mt-3 text-white">Membership</h4>
+            <p class="text-xs text-gray-500 mt-1">GMM Analysis</p>
+          </div>
+          <div class="glass-card group relative rounded-xl p-5 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm hover:border-accent-cyan/40 cursor-pointer transition-all duration-300" data-navigate="isochrone">
+            <i class="fas fa-chart-line text-2xl text-accent-cyan group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(0,212,255,0.5)]"></i>
+            <h4 class="text-sm font-medium mt-3 text-white">Isochrone</h4>
+            <p class="text-xs text-gray-500 mt-1">Extinction &amp; CMD</p>
+          </div>
+          <div class="glass-card group relative rounded-xl p-5 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm hover:border-accent-cyan/40 cursor-pointer transition-all duration-300" data-navigate="kinematics">
+            <i class="fas fa-globe text-2xl text-accent-cyan group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(0,212,255,0.5)]"></i>
+            <h4 class="text-sm font-medium mt-3 text-white">Kinematics</h4>
+            <p class="text-xs text-gray-500 mt-1">Heliocentric 3D &amp; PM vectors</p>
+          </div>
+          <div class="glass-card group relative rounded-xl p-5 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm hover:border-accent-cyan/40 cursor-pointer transition-all duration-300" data-navigate="imf">
+            <i class="fas fa-chart-bar text-2xl text-accent-cyan group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(0,212,255,0.5)]"></i>
+            <h4 class="text-sm font-medium mt-3 text-white">IMF &amp; Completeness</h4>
+            <p class="text-xs text-gray-500 mt-1">Mass Function</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="page-membership" class="page-section absolute inset-0 overflow-y-auto p-6" style="opacity:0; visibility:hidden">
+      <div class="gmm-split max-w-7xl mx-auto flex flex-col lg:flex-row gap-6">
+        <div id="panel-membership" class="gmm-scroll w-full lg:w-80 flex-shrink-0 rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl space-y-4">
+          <h3 class="text-lg font-semibold flex items-center gap-2"><i class="fas fa-sliders text-accent-cyan"></i> GMM Parameters</h3>
+
+          <div id="dropzone-raw" class="border-2 border-dashed border-white/[0.08] hover:border-accent-cyan/40 rounded-xl p-5 text-center cursor-pointer transition-all duration-300 bg-white/[0.02] hover:bg-accent-cyan/[0.03]">
+            <i class="fas fa-cloud-upload-alt text-3xl text-gray-500 mb-2"></i>
+            <p class="text-sm text-gray-300 font-medium">Drop cluster .csv here</p>
+            <p class="text-xs text-gray-500 mt-1">or click to browse your CSV</p>
+            <input type="file" id="file-raw-data" accept=".csv" class="hidden">
+          </div>
+          <p id="raw-file-name" class="text-xs text-accent-cyan truncate hidden"></p>
+
+          <div class="space-y-3">
+            <div class="grid grid-cols-2 gap-2">
+              <div class="relative">
+                <label class="text-xs text-gray-400">RUWE (&lt;)</label>
+                <input id="input-ruwe" type="number" step="0.1" value="1.6" class="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:border-accent-cyan/50 focus:outline-none">
+              </div>
+              <div class="relative">
+                <label class="text-xs text-gray-400">gofAL (&lt;)</label>
+                <input id="input-gofal" type="number" step="0.1" value="3.0" class="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:border-accent-cyan/50 focus:outline-none">
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="relative">
+                <label class="text-xs text-gray-400">e_pmRA (&lt;)</label>
+                <input id="input-epmra" type="number" step="0.01" value="0.1" class="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:border-accent-cyan/50 focus:outline-none">
+              </div>
+              <div class="relative">
+                <label class="text-xs text-gray-400">e_pmDE (&lt;)</label>
+                <input id="input-epmde" type="number" step="0.01" value="0.1" class="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:border-accent-cyan/50 focus:outline-none">
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="relative">
+                <label class="text-xs text-gray-400">Plx / e_Plx (&gt;)</label>
+                <input id="input-plx-err" type="number" step="0.1" value="5.0" class="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:border-accent-cyan/50 focus:outline-none">
+              </div>
+              <div class="relative">
+                <label class="text-xs text-gray-400">Nper (&gt;)</label>
+                <input id="input-nper" type="number" step="1" value="10" class="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:border-accent-cyan/50 focus:outline-none">
+              </div>
+            </div>
+
+            <div class="w-full h-px bg-white/[0.06] my-2"></div>
+
+            <div class="grid grid-cols-3 gap-2">
+              <div class="relative">
+                <label class="text-xs text-gray-400">Dist Lit (pc)</label>
+                <input id="input-distance" type="number" step="1" value="341" class="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:border-accent-cyan/50 focus:outline-none">
+              </div>
+              <div class="relative">
+                <label class="text-xs text-gray-400">Half Width</label>
+                <input id="input-half-width" type="number" step="0.1" value="195.5" class="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:border-accent-cyan/50 focus:outline-none">
+              </div>
+              <div class="relative">
+                <label class="text-xs text-gray-400">PMemb Cutoff</label>
+                <input id="input-cutoff" type="number" step="0.05" min="0.1" max="0.95" value="0.5" class="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:border-accent-cyan/50 focus:outline-none">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div class="relative">
+                <label class="text-xs text-gray-400 flex items-center gap-1">GMM Components (K) <span class="tooltip-trigger" data-tooltip="Auto picks K in 2..6 by minimum BIC (check the K-robustness table below: members should be stable across K). K = 2 reproduces the Colab script (cluster + one field blob, no BIC). Cluster = Gaussian with smallest det(covariance)."><i class="fas fa-circle-question text-gray-500 text-[10px]"></i></span></label>
+                <select id="input-gmm-k" class="w-full bg-space-800 border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:border-accent-cyan/50 focus:outline-none">
+                  <option value="auto" selected>Auto (BIC K=2..6)</option>
+                  <option value="2">K = 2 (matches Colab)</option>
+                  <option value="3">K = 3</option>
+                  <option value="4">K = 4</option>
+                  <option value="5">K = 5</option>
+                  <option value="6">K = 6</option>
+                </select>
+              </div>
+              <div class="relative">
+                <label class="text-xs text-gray-400 flex items-center gap-1">EM optimizer <span class="tooltip-trigger" data-tooltip="Colab-compatible = sklearn defaults (stops at tol 1e-3 / 100 iterations) and reproduces the Colab member counts. Fully converged = tol 1e-6 / 1000 iterations: higher likelihood (lower BIC) but a different member split on overlapping clusters."><i class="fas fa-circle-question text-gray-500 text-[10px]"></i></span></label>
+                <select id="input-gmm-opt" class="w-full bg-space-800 border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:border-accent-cyan/50 focus:outline-none">
+                  <option value="colab">Colab-compatible (tol 1e-3, 100 it)</option>
+                  <option value="converged" selected>Fully converged (tol 1e-6) - for papers</option>
+                </select>
+              </div>
+              <div class="relative">
+                <label class="text-xs text-gray-400 flex items-center gap-1">Plx ZP (mas) <span class="tooltip-trigger" data-tooltip="Parallax zero-point offset in mas (distance = 1000 / (Plx - PLX_ZP)). Gaia DR3 global ~ -0.017."><i class="fas fa-circle-question text-gray-500 text-[10px]"></i></span></label>
+                <input id="input-gmm-plxzp" type="number" step="0.001" value="0.0" class="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:border-accent-cyan/50 focus:outline-none">
+              </div>
+            </div>
+          </div>
+
+          <button id="btn-run-gmm" class="w-full py-2.5 bg-gradient-to-r from-accent-cyan to-accent-violet rounded-xl text-sm font-semibold hover:shadow-[0_0_20px_rgba(0,212,255,0.3)] transition-all duration-300 flex items-center justify-center gap-2">
+            <i class="fas fa-cogs"></i> Run GMM Analysis
+          </button>
+
+          <div id="gmm-download-section" class="space-y-3 rounded-xl p-4 border border-white/[0.08] bg-white/[0.02] transition-all duration-300">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i id="gmm-download-icon" class="fas fa-file-csv text-accent-cyan"></i>
+                <p id="gmm-download-title" class="text-xs text-white font-semibold">Filtered &amp; Classified File</p>
+              </div>
+              <span id="gmm-download-badge" class="text-[10px] bg-white/[0.06] text-gray-400 px-2 py-0.5 rounded-full border border-white/[0.1]">Pending GMM</span>
+            </div>
+            <p id="gmm-download-desc" class="text-[10px] text-gray-400">Run GMM Analysis above to filter stars by astrometric parameters and classify stellar types. The resulting file will be available for download here and automatically used across all analysis tabs.</p>
+            <button id="btn-download-members" disabled class="w-full py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-gray-500 cursor-not-allowed">
+              <i class="fas fa-download"></i> Download Filtered Members CSV
+            </button>
+          </div>
+
+          <div id="gmm-classification-stats" class="hidden rounded-xl p-4 border border-accent-cyan/20 bg-accent-cyan/[0.03]">
+            <h4 class="text-xs font-semibold text-accent-cyan mb-2 uppercase tracking-wider"><i class="fas fa-star"></i> Stellar Classification (Members)</h4>
+            <div id="gmm-classification-list" class="space-y-1"></div>
+          </div>
+        </div>
+
+        <div id="gmm-results-scroll" class="gmm-scroll flex-1 min-w-0 space-y-6">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+            <h2 class="text-2xl font-bold">Membership Probability <span class="text-accent-cyan">(OCMass GMM)</span></h2>
+            <div class="text-xs text-accent-cyan/90 bg-accent-cyan/10 px-3 py-1 rounded-full border border-accent-cyan/20 flex items-center gap-1.5 self-start md:self-auto">
+              <i class="fas fa-filter text-[10px]"></i> <span>BIC K-Selection &amp; Smallest det(&Sigma;) Cluster Component</span>
+            </div>
+          </div>
+
+          <!-- Readable Error Alert Box for Stage 1 -->
+          <div id="gmm-error-box" class="hidden rounded-xl p-4 border border-red-500/40 bg-red-500/10 text-red-200 text-sm flex items-start gap-3">
+            <i class="fas fa-triangle-exclamation text-red-400 mt-0.5"></i>
+            <div class="flex-1">
+              <p class="font-semibold text-red-300 text-xs uppercase tracking-wider">Stage 1 Validation / GMM Error</p>
+              <p id="gmm-error-text" class="text-xs mt-1 leading-relaxed"></p>
+            </div>
+          </div>
+
+          <div id="gmm-stats" class="rounded-xl p-4 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm hidden">
+            <div class="flex flex-wrap items-center gap-5 text-xs sm:text-sm">
+              <div>Cleaned: <span id="stat-input" class="text-gray-200 font-semibold">-</span></div>
+              <div>In Window: <span id="stat-total" class="text-accent-cyan font-semibold">-</span></div>
+              <div>Best K (BIC): <span id="stat-k" class="text-accent-purple font-mono font-semibold">-</span></div>
+              <div>Members (PMemb &ge; Cutoff): <span id="stat-members" class="text-green-400 font-semibold">-</span></div>
+              <div>Non-Members: <span id="stat-field" class="text-red-400 font-semibold">-</span></div>
+              <div>Cutoff: <span id="stat-threshold" class="text-accent-violet font-semibold">-</span></div>
+              <div>MSS: <span id="stat-mss" class="text-yellow-400 font-mono font-semibold">-</span></div>
+              <div>Member Dist: <span id="stat-mem-dist" class="text-accent-cyan font-mono font-semibold">-</span></div>
+            </div>
+          </div>
+
+          <div id="gmm-components-box" class="rounded-xl p-4 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm hidden overflow-x-auto">
+            <div class="text-xs text-gray-400 mb-2">GMM components in (pmRA, pmDE, Plx) space. The <span class="text-green-400 font-semibold">cluster</span> is the component with the smallest det(&Sigma;) (tightest blob); PMemb = P(star &isin; that component). <span id="gmm-bic-line" class="font-mono text-gray-500"></span></div>
+            <div class="text-xs text-gray-400 mt-3 mb-1">K-robustness: member count each K would give (cluster = tightest blob). Stable counts across K support the membership; a jump means the cluster is splitting or merging with the field.</div>
+            <table class="w-full text-[11px] font-mono text-gray-300 mb-2"><thead><tr class="text-gray-500 text-left"><th class="pr-3">K</th><th class="pr-3">BIC</th><th class="pr-3">members</th><th class="pr-3">non-members</th><th class="pr-3">smallest comp. (stars)</th><th></th></tr></thead><tbody id="gmm-ktable-body"></tbody></table>
+            <div id="gmm-methods-line" class="text-[10px] font-mono text-gray-500 leading-relaxed"></div>
+            <table class="w-full text-[11px] font-mono text-gray-300"><thead><tr class="text-gray-500 text-left"><th class="pr-3">#</th><th class="pr-3">weight</th><th class="pr-3">stars</th><th class="pr-3">det&Sigma; (std. units)</th><th class="pr-3">pmRA &plusmn; sd</th><th class="pr-3">pmDE &plusmn; sd</th><th class="pr-3">Plx &plusmn; sd</th><th></th></tr></thead><tbody id="gmm-components-body"></tbody></table>
+          </div>
+
+          <div class="flex flex-col gap-6">
+            <div class="rounded-2xl p-5 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
+              <h4 class="text-sm font-medium text-gray-300 mb-3 flex items-center justify-between"><span>1. Sky Map — Spatial Distribution (RA vs Dec)</span><span class="text-[10px] text-accent-cyan bg-accent-cyan/10 border border-accent-cyan/20 px-2.5 py-0.5 rounded-full"><i class="fas fa-compass text-[9px]"></i> Inverted RA Axis</span></h4>
+              <div id="plot-ra-dec" style="height: 540px; width: 100%;"></div>
+            </div>
+            <div class="rounded-2xl p-5 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
+              <h4 class="text-sm font-medium text-gray-300 mb-3 flex items-center justify-between"><span>2. Vector Point Diagram — Proper Motion (pmRA vs pmDE)</span><span class="text-[10px] text-accent-cyan bg-accent-cyan/10 border border-accent-cyan/20 px-2.5 py-0.5 rounded-full"><i class="fas fa-project-diagram text-[9px]"></i> GMM Member vs Non-member</span></h4>
+              <div id="plot-vpd" style="height: 540px; width: 100%;"></div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div class="rounded-2xl p-4 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
+                <h4 class="text-xs font-medium text-gray-300 mb-2">3. Parallax Distribution (Plx)</h4>
+                <div id="plot-gmm-plx" style="height: 340px; width: 100%;"></div>
+              </div>
+              <div class="rounded-2xl p-4 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
+                <h4 class="text-xs font-medium text-gray-300 mb-2">4. Member Observed CMD (BP-RP vs G)</h4>
+                <div id="plot-gmm-cmd-mem" style="height: 340px; width: 100%;"></div>
+              </div>
+              <div class="rounded-2xl p-4 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
+                <h4 class="text-xs font-medium text-gray-300 mb-2">5. Non-Member Observed CMD</h4>
+                <div id="plot-gmm-cmd-nonmem" style="height: 340px; width: 100%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="page-isochrone" class="page-section absolute inset-0 overflow-y-auto p-6" style="opacity:0; visibility:hidden">
+      <div class="max-w-6xl mx-auto space-y-6">
+        <h2 class="text-2xl font-bold">Isochrone Fit &amp; <span class="text-accent-cyan">Extinction Correction</span></h2>
+
+        <!-- Readable Error & Warning Banners for Stage 2 -->
+        <div id="iso-error-box" class="hidden rounded-xl p-4 border border-red-500/40 bg-red-500/10 text-red-200 text-sm flex items-start gap-3">
+          <i class="fas fa-triangle-exclamation text-red-400 mt-0.5"></i>
+          <div class="flex-1">
+            <p class="font-semibold text-red-300 text-xs uppercase tracking-wider">Stage 2 Extinction / PARSEC Error</p>
+            <p id="iso-error-text" class="text-xs mt-1 leading-relaxed"></p>
+          </div>
+        </div>
+
+        <div id="iso-colour-warning" class="hidden rounded-xl p-4 border border-amber-500/40 bg-amber-500/10 text-amber-200 text-xs flex items-start gap-3">
+          <i class="fas fa-exclamation-triangle text-amber-400 text-base mt-0.5"></i>
+          <div class="flex-1">
+            <p class="font-semibold text-amber-300 uppercase tracking-wider">SFD Dust Over-Correction Warning (frac_colour_ok &lt; 0.90)</p>
+            <p id="iso-colour-warning-text" class="mt-1 leading-relaxed"></p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="rounded-xl p-4 border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase tracking-wider text-accent-cyan flex items-center gap-1.5">
+                <i class="fas fa-database"></i> Cluster Data Source
+              </span>
+              <span id="iso-source-status" class="text-[10px] bg-accent-cyan/10 text-accent-cyan px-2 py-0.5 rounded-full border border-accent-cyan/20">GMM Filtered File</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <button id="btn-iso-use-gmm" type="button" class="py-2 px-3 rounded-lg text-xs font-medium border border-accent-cyan/40 bg-accent-cyan/15 text-white flex items-center justify-center gap-1.5 transition-all">
+                <i class="fas fa-filter text-accent-cyan"></i> Use GMM Filtered
+              </button>
+              <button id="btn-iso-use-custom" type="button" class="py-2 px-3 rounded-lg text-xs font-medium border border-white/[0.08] bg-white/[0.03] text-gray-400 hover:text-white flex items-center justify-center gap-1.5 transition-all">
+                <i class="fas fa-upload text-accent-violet"></i> Upload Custom CSV
+              </button>
+            </div>
+            <div id="iso-gmm-info" class="text-[11px] text-gray-400 bg-space-800/60 rounded-lg p-2.5 border border-white/[0.05]">
+              <i class="fas fa-check-circle text-accent-cyan mr-1"></i> Using stars filtered &amp; classified by the Membership (GMM) pipeline.
+            </div>
+            <div id="iso-custom-upload-wrap" class="hidden">
+              <div id="dropzone-iso-custom" class="border-2 border-dashed border-white/[0.12] hover:border-accent-cyan/50 rounded-lg p-3 text-center cursor-pointer transition-colors bg-white/[0.02]">
+                <i class="fas fa-file-csv text-lg text-accent-cyan mb-1"></i>
+                <p class="text-xs text-gray-300 font-medium">Drop your filtered .csv here or click to browse</p>
+                <input type="file" id="file-iso-custom" accept=".csv" class="hidden">
+              </div>
+              <p id="iso-custom-file-name" class="text-[11px] text-accent-cyan truncate mt-1.5 hidden"></p>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="flex flex-col lg:flex-row gap-6">
+          <div id="panel-isochrone" class="w-full lg:w-80 flex-shrink-0 rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl space-y-4 lg:self-start lg:sticky lg:top-6">
+            <h3 class="text-base font-semibold flex items-center gap-2"><i class="fas fa-sun text-yellow-400"></i> Extinction &amp; PARSEC</h3>
+            <p class="text-[10px] text-accent-cyan">Schlafly &amp; Finkbeiner (2011): A_V = 2.742 &times; E(B-V)</p>
+
+            <div class="space-y-3">
+              <div>
+                <label class="text-xs text-gray-400 flex items-center gap-1">E(B-V) Mode <span class="tooltip-trigger" data-tooltip="'center' queries IRSA once at the cluster median RA/Dec. 'per_star' queries IRSA for every star (stars in the same 0.05 deg cell share one call) and the MEAN E(B-V) is used. 'fixed' uses the typed E(B-V) (recommended for nearby clusters <500pc). Nothing is requested from IRSA / PARSEC until you press the Apply button."><i class="fas fa-circle-question text-gray-500 text-[10px]"></i></span></label>
+                <select id="input-ebv-mode" class="w-full bg-space-800 border border-white/[0.08] rounded-lg px-3 py-2 text-xs text-white focus:border-accent-cyan/50 focus:outline-none mt-1">
+                  <option value="center" selected>center (1 IRSA call at cluster center)</option>
+                  <option value="fixed">fixed (Manual E(B-V) override)</option>
+                  <option value="per_star">per_star (IRSA per sky cell, averaged — slower)</option>
+                </select>
+              </div>
+
+              <div id="per-star-warning" class="hidden rounded-lg p-2.5 border border-amber-500/30 bg-amber-500/10 text-[11px] text-amber-300 space-y-1.5">
+                <p><i class="fas fa-clock mr-1"></i> <strong>Warning:</strong> <code>per_star</code> queries IRSA individually for every member star and is slow.</p>
+                <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div id="per-star-progress-bar" class="h-full bg-accent-cyan transition-all duration-200" style="width: 0%"></div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div class="relative">
+                  <label class="text-xs text-gray-400 flex items-center gap-1">Manual E(B-V) <span class="tooltip-trigger" data-tooltip="Colour excess E(B-V). Used when mode='fixed' or as fallback when offline."><i class="fas fa-circle-question text-gray-500 text-[10px]"></i></span></label>
+                  <input id="input-ebv" type="number" step="0.01" min="0" value="0.15" class="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:border-accent-cyan/50">
+                </div>
+                <div class="relative">
+                  <label class="text-xs text-gray-400 flex items-center gap-1">A_V (2.742&middot;EBV) <span class="tooltip-trigger" data-tooltip="Visual extinction A_V = 2.742 × E(B-V) (Schlafly & Finkbeiner 2011)."><i class="fas fa-circle-question text-gray-500 text-[10px]"></i></span></label>
+                  <input id="input-av" type="number" step="0.01" value="0.41" readonly class="w-full bg-white/[0.02] border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-gray-400">
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div class="relative">
+                  <label class="text-xs text-gray-400 flex items-center gap-1">log(Age/yr) <span class="tooltip-trigger" data-tooltip="PARSEC log10(Age/yr), minimum floor 6.6. Clusters with logAge < 7.0 (~10 Myr) are labeled IMF; older are Present-day MF."><i class="fas fa-circle-question text-gray-500 text-[10px]"></i></span></label>
+                  <input id="input-age" type="number" step="0.05" min="6.6" max="10.1" value="7.5" class="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:border-accent-cyan/50">
+                </div>
+                <div class="relative">
+                  <label class="text-xs text-gray-400 flex items-center gap-1">[M/H] <span class="tooltip-trigger" data-tooltip="PARSEC logarithmic metallicity [M/H] relative to solar."><i class="fas fa-circle-question text-gray-500 text-[10px]"></i></span></label>
+                  <input id="input-metallicity" type="number" step="0.01" value="0.0" class="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:border-accent-cyan/50">
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div class="relative">
+                  <label class="text-xs text-gray-400 flex items-center gap-1">DM (m-M) <span class="tooltip-trigger" data-tooltip="Fallback Distance Modulus when parallax is absent."><i class="fas fa-circle-question text-gray-500 text-[10px]"></i></span></label>
+                  <input id="input-dist-mod" type="number" step="0.01" value="7.66" class="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:border-accent-cyan/50">
+                </div>
+                <div class="relative">
+                  <label class="text-xs text-gray-400 flex items-center gap-1">Plx ZP (mas) <span class="tooltip-trigger" data-tooltip="Parallax zero-point offset in mas."><i class="fas fa-circle-question text-gray-500 text-[10px]"></i></span></label>
+                  <input id="input-iso-plxzp" type="number" step="0.001" value="0.0" class="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:border-accent-cyan/50">
+                </div>
+              </div>
+
+              <label class="flex items-center gap-2 text-xs text-gray-300 cursor-pointer pt-1">
+                <input id="input-use-cluster-dm" type="checkbox" checked class="accent-cyan-400 rounded">
+                <span>Use Cluster Median DM (1000 / median Plx)</span>
+              </label>
+
+              <div>
+                <label class="text-xs text-gray-400 flex items-center gap-1">Extinction in the fit <span class="tooltip-trigger" data-tooltip="Extinction must be applied ONCE. 'Redden the isochrone': the MEAN A_V from IRSA is sent to CMD 3.8, the stars are plotted as observed (BP-RP, G-DM). 'De-redden the stars': CMD gets A_V=0 and the stars are de-reddened with the per-star values (reference code). Never mix the two."><i class="fas fa-circle-question text-gray-500 text-[10px]"></i></span></label>
+                <select id="input-iso-ext" class="w-full bg-space-800 border border-white/[0.08] rounded-lg px-3 py-2 text-xs text-white focus:border-accent-cyan/50 focus:outline-none mt-1">
+                  <option value="reddened" selected>Redden the isochrone (mean A_V sent to CMD)</option>
+                  <option value="intrinsic">De-redden the stars (CMD A_V = 0)</option>
+                </select>
+              </div>
+            </div>
+
+            <button id="btn-apply-extinction" class="w-full py-2.5 bg-gradient-to-r from-accent-cyan to-accent-violet rounded-xl text-sm font-semibold hover:shadow-[0_0_20px_rgba(0,212,255,0.3)] transition-all duration-300 flex items-center justify-center gap-2">
+              <i class="fas fa-sync-alt"></i> Apply Extinction &amp; Fetch PARSEC
+            </button>
+
+            <button id="btn-download-parsec-dat" type="button" class="w-full py-2 px-2.5 bg-accent-violet/10 hover:bg-accent-violet/20 border border-accent-violet/30 rounded-lg text-[11px] font-medium text-gray-100 flex items-center justify-center gap-1.5 transition-all" title="The file exactly as CMD 3.8 returned it, with request provenance in # comment lines">
+              <i class="fas fa-download text-accent-violet"></i> PARSEC file from CMD 3.8 (.dat)
+            </button>
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <button id="btn-download-ext-csv" type="button" class="py-2 px-2.5 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] rounded-lg text-[11px] font-medium text-gray-200 flex items-center justify-center gap-1.5 transition-all">
+                <i class="fas fa-download text-accent-cyan"></i> Ext. CSV
+              </button>
+              <button id="btn-download-iso-csv" type="button" class="py-2 px-2.5 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] rounded-lg text-[11px] font-medium text-gray-200 flex items-center justify-center gap-1.5 transition-all">
+                <i class="fas fa-download text-accent-violet"></i> PARSEC CSV
+              </button>
+            </div>
+
+            <div class="rounded-lg p-3 border border-yellow-500/10 bg-yellow-500/[0.03] backdrop-blur-sm">
+              <p class="text-xs text-yellow-400/80"><i class="fas fa-info-circle"></i> SFD gives total line-of-sight column via <a href="https://irsa.ipac.caltech.edu/applications/DUST/" target="_blank" class="underline hover:text-yellow-300">Caltech IRSA Dust</a>. For nearby clusters (&lt;500 pc), use <code>fixed</code> mode override.</p>
+            </div>
+
+            <div id="classification-stats" class="hidden rounded-lg p-4 border border-accent-cyan/20 bg-accent-cyan/[0.02] backdrop-blur-sm mt-4">
+              <h4 class="text-xs font-semibold text-accent-cyan mb-2 uppercase tracking-wider">Classification Details</h4>
+              <div id="classification-counts-list" class="space-y-1"></div>
+            </div>
+          </div>
+
+          <div class="flex-1 space-y-4">
+            <div id="iso-workflow" class="rounded-xl p-3 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
+              <div class="text-[10px] uppercase tracking-wider text-gray-500 mb-2">Workflow &middot; filtered CSV &rarr; IRSA dust &rarr; extinction &rarr; PARSEC (CMD 3.8, Gaia DR3) &rarr; isochrone fit</div>
+              <div class="grid grid-cols-1 md:grid-cols-5 gap-2">
+                <div id="iso-wf-1" class="iso-wf rounded-lg p-2 border border-white/[0.06] bg-white/[0.02]"><div class="text-[10px] font-semibold text-gray-300"><span class="iso-wf-dot inline-block w-1.5 h-1.5 rounded-full bg-gray-500 mr-1"></span>1 Filtered CSV</div><div class="iso-wf-body mt-1 text-[10.5px] font-mono text-gray-400 leading-snug">-</div></div>
+                <div id="iso-wf-2" class="iso-wf rounded-lg p-2 border border-white/[0.06] bg-white/[0.02]"><div class="text-[10px] font-semibold text-gray-300"><span class="iso-wf-dot inline-block w-1.5 h-1.5 rounded-full bg-gray-500 mr-1"></span>2 IRSA dust</div><div class="iso-wf-body mt-1 text-[10.5px] font-mono text-gray-400 leading-snug">-</div></div>
+                <div id="iso-wf-3" class="iso-wf rounded-lg p-2 border border-white/[0.06] bg-white/[0.02]"><div class="text-[10px] font-semibold text-gray-300"><span class="iso-wf-dot inline-block w-1.5 h-1.5 rounded-full bg-gray-500 mr-1"></span>3 Extinction</div><div class="iso-wf-body mt-1 text-[10.5px] font-mono text-gray-400 leading-snug">-</div></div>
+                <div id="iso-wf-4" class="iso-wf rounded-lg p-2 border border-white/[0.06] bg-white/[0.02]"><div class="text-[10px] font-semibold text-gray-300"><span class="iso-wf-dot inline-block w-1.5 h-1.5 rounded-full bg-gray-500 mr-1"></span>4 PARSEC (CMD 3.8)</div><div class="iso-wf-body mt-1 text-[10.5px] font-mono text-gray-400 leading-snug">-</div></div>
+                <div id="iso-wf-5" class="iso-wf rounded-lg p-2 border border-white/[0.06] bg-white/[0.02]"><div class="text-[10px] font-semibold text-gray-300"><span class="iso-wf-dot inline-block w-1.5 h-1.5 rounded-full bg-gray-500 mr-1"></span>5 Isochrone fit</div><div class="iso-wf-body mt-1 text-[10.5px] font-mono text-gray-400 leading-snug">-</div></div>
+              </div>
+            </div>
+            <div id="iso-meta-stats" class="hidden rounded-xl p-4 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
+              <div class="flex flex-wrap items-center gap-5 text-xs sm:text-sm">
+                <div>Mode: <span id="meta-ebv-mode" class="text-accent-cyan font-mono font-semibold">-</span></div>
+                <div>Mean E(B-V): <span id="meta-ebv-val" class="text-white font-mono font-semibold">-</span></div>
+                <div>A_V: <span id="meta-av-val" class="text-yellow-400 font-mono font-semibold">-</span></div>
+                <div>d (pc): <span id="meta-dpc-val" class="text-green-400 font-mono font-semibold">-</span></div>
+                <div>DM: <span id="meta-dm-val" class="text-accent-purple font-mono font-semibold">-</span></div>
+                <div>Colour OK: <span id="meta-col-ok" class="text-accent-cyan font-mono font-semibold">-</span></div>
+              </div>
+            </div>
+
+            <div class="rounded-2xl p-4 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
+              <h4 class="text-sm font-medium text-gray-400 mb-2 flex items-center justify-between"><span>De-reddened Absolute CMD &amp; PARSEC Isochrone</span><span id="badge-source-isochrone" class="text-[10px] text-accent-cyan bg-accent-cyan/10 border border-accent-cyan/20 px-2 py-0.5 rounded-full"><i class="fas fa-filter text-[9px]"></i> Using GMM filtered file</span></h4>
+              <div id="iso-type-filter" class="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-2 px-1 text-[11px] text-gray-300">
+                <span class="text-[10px] uppercase tracking-wider text-gray-500">Show stars</span>
+                <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" class="iso-type-cb accent-cyan-400" data-type="Main Sequence" checked><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#00FFFF"></span>Main Sequence <span id="iso-cnt-0" class="font-mono text-gray-500"></span></label>
+                <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" class="iso-type-cb accent-cyan-400" data-type="Pre-Main Sequence" checked><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#BA8E23"></span>Pre-Main Sequence <span id="iso-cnt-1" class="font-mono text-gray-500"></span></label>
+                <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" class="iso-type-cb accent-cyan-400" data-type="White Dwarf" checked><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#000;border:1px solid #fff"></span>White Dwarf <span id="iso-cnt-2" class="font-mono text-gray-500"></span></label>
+                <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" class="iso-type-cb accent-cyan-400" data-type="Red Giant / Supergiant" checked><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#FF0000"></span>Red Giant / Supergiant <span id="iso-cnt-3" class="font-mono text-gray-500"></span></label>
+                <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" class="iso-type-cb accent-cyan-400" data-type="__oor__" checked><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#9ca3af"></span>Colour out of range <span id="iso-cnt-oor" class="font-mono text-gray-500"></span></label>
+                <span id="iso-plotted-note" class="font-mono text-gray-500"></span>
+                <span class="flex items-center gap-1 ml-auto"><button id="btn-iso-types-all" type="button" class="px-2 py-0.5 rounded border border-white/[0.1] text-gray-400 hover:text-white">All</button><button id="btn-iso-types-none" type="button" class="px-2 py-0.5 rounded border border-white/[0.1] text-gray-400 hover:text-white">None</button></span>
+              </div>
+              <div id="plot-cmd-iso" style="height: 550px; width: 100%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="page-kinematics" class="page-section absolute inset-0 overflow-y-auto p-6" style="opacity:0; visibility:hidden">
+      <div class="max-w-7xl mx-auto space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <h2 class="text-2xl font-bold">Kinematic <span class="text-accent-cyan">Analysis</span></h2>
+          <button id="btn-compute-kinematics" class="py-2.5 px-6 bg-gradient-to-r from-accent-cyan to-accent-violet rounded-xl text-sm font-semibold hover:shadow-[0_0_20px_rgba(0,212,255,0.3)] transition-all duration-300 flex items-center justify-center gap-2">
+            <i class="fas fa-rocket"></i> Compute Kinematics
+          </button>
+        </div>
+
+        <!-- 3D map settings: parallax noise turns a round cluster into a needle along the line of sight; these control how distances are handled -->
+        <div class="rounded-xl p-3 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm grid grid-cols-2 md:grid-cols-5 gap-3 text-xs text-gray-400">
+          <label class="flex flex-col gap-1">3D distance handling
+            <select id="kin3d-mode" class="bg-space-800 border border-white/[0.08] rounded-lg px-2 py-1.5 text-sm text-white">
+              <option value="precision" selected>Precision cut (1/&varpi;, good parallaxes only)</option>
+              <option value="shrink">Shrink to cluster parallax</option>
+              <option value="raw">Raw 1/&varpi; (all stars)</option>
+            </select></label>
+          <label class="flex flex-col gap-1">Max &sigma;&varpi;/&varpi; (precision cut)
+            <input id="kin3d-maxfrac" type="number" step="0.01" min="0.005" max="0.5" value="0.05" class="bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-1.5 text-sm text-white"></label>
+          <label class="flex flex-col gap-1">Cluster depth, pc (shrink)
+            <input id="kin3d-depth" type="number" step="1" min="0.5" max="100" value="5" class="bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-1.5 text-sm text-white"></label>
+          <label class="flex flex-col gap-1">Frame
+            <select id="kin3d-frame" class="bg-space-800 border border-white/[0.08] rounded-lg px-2 py-1.5 text-sm text-white">
+              <option value="galactic" selected>Galactic (X&rarr;GC, Y&rarr;l=90&deg;, Z&rarr;NGP)</option>
+              <option value="icrs">Equatorial ICRS</option>
+            </select></label>
+          <label class="flex items-center gap-2 mt-4"><input id="kin3d-centre" type="checkbox" checked> Centre on cluster median</label>
+        </div>
+
+        <!-- Kinematics Data Source Selector Bar -->
+        <div class="rounded-2xl p-4 border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+          <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+            <span class="text-xs font-semibold uppercase tracking-wider text-accent-cyan flex items-center gap-1.5">
+              <i class="fas fa-database"></i> Data Source:
+            </span>
+            <div class="inline-flex rounded-xl p-1 bg-space-900/80 border border-white/[0.06]">
+              <button id="btn-kin-use-gmm" type="button" class="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-accent-cyan/15 text-white border border-accent-cyan/40 transition-all flex items-center gap-1.5">
+                <i class="fas fa-filter text-accent-cyan"></i> Use GMM Filtered File
+              </button>
+              <button id="btn-kin-use-custom" type="button" class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-gray-400 hover:text-white border border-transparent transition-all flex items-center gap-1.5">
+                <i class="fas fa-upload text-accent-violet"></i> Upload Custom Filtered CSV
+              </button>
+            </div>
+            <span id="kin-source-status" class="text-xs text-gray-400">Active: <strong class="text-accent-cyan">GMM Filtered Members</strong></span>
+          </div>
+
+          <div id="kin-custom-upload-wrap" class="hidden flex-1 max-w-md">
+            <div id="dropzone-kin-custom" class="border border-dashed border-accent-cyan/40 hover:border-accent-cyan rounded-xl px-4 py-2 text-center cursor-pointer transition-colors bg-accent-cyan/[0.03] flex items-center justify-center gap-2">
+              <i class="fas fa-file-csv text-accent-cyan"></i>
+              <span id="kin-custom-file-name" class="text-xs text-gray-200 truncate">Click or drop custom filtered .csv here</span>
+              <input type="file" id="file-kin-custom" accept=".csv" class="hidden">
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="rounded-2xl p-4 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm lg:col-span-2">
+            <h4 class="text-sm font-medium text-gray-400 mb-2 flex items-center justify-between"><span>3D Spatial Distribution (Heliocentric X, Y, Z)</span><span id="badge-source-kinematics-3d" class="text-[10px] text-accent-cyan bg-accent-cyan/10 border border-accent-cyan/20 px-2 py-0.5 rounded-full"><i class="fas fa-filter text-[9px]"></i> Using GMM filtered file</span></h4>
+            <div id="kin3d-diag" class="text-[11px] text-gray-400 mb-2 leading-relaxed"></div>
+            <div id="plot-3d" style="height: 500px; width: 100%;"></div>
+          </div>
+          <div class="rounded-2xl p-4 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm lg:col-span-2">
+            <h4 class="text-sm font-medium text-gray-400 mb-2 flex items-center justify-between"><span>2D Vector Kinematics (Proper Motion Quiver Diagram)</span><span id="badge-source-kinematics-2d" class="text-[10px] text-accent-cyan bg-accent-cyan/10 border border-accent-cyan/20 px-2 py-0.5 rounded-full"><i class="fas fa-filter text-[9px]"></i> Using GMM filtered file</span></h4>
+            <div id="plot-2d-quiver" style="height: 480px; width: 100%;"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="page-imf" class="page-section absolute inset-0 overflow-y-auto p-6" style="opacity:0; visibility:hidden">
+      <div class="max-w-7xl mx-auto space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h2 class="text-2xl font-bold"><span id="imf-page-heading-accent" class="text-accent-cyan">Present-day MF</span> &amp; Completeness</h2>
+          <span id="imf-age-regime-badge" class="text-xs px-3 py-1 rounded-full bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/20 font-medium">
+            log(Age/yr) &ge; 7.0 &rarr; Present-day MF (dynamical evolution)
+          </span>
+        </div>
+
+        <!-- Readable Error Box for Stage 3 -->
+        <div id="imf-error-box" class="hidden rounded-xl p-4 border border-red-500/40 bg-red-500/10 text-red-200 text-sm flex items-start gap-3">
+          <i class="fas fa-triangle-exclamation text-red-400 mt-0.5"></i>
+          <div class="flex-1">
+            <p class="font-semibold text-red-300 text-xs uppercase tracking-wider">Stage 3 Mass Function Error</p>
+            <p id="imf-error-text" class="text-xs mt-1 leading-relaxed"></p>
+          </div>
+        </div>
+
+        <div class="flex flex-col lg:flex-row gap-6">
+          <div class="w-full lg:w-80 flex-shrink-0 rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl space-y-4 lg:self-start lg:sticky lg:top-6">
+            <h3 class="text-base font-semibold"><i class="fas fa-chart-bar text-accent-cyan"></i> OCMass IMF Controls</h3>
+
+            <!-- IMF Data Source Selector -->
+            <div class="rounded-xl p-3.5 border border-white/[0.08] bg-white/[0.02] space-y-2.5">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-accent-cyan flex items-center gap-1">
+                  <i class="fas fa-database"></i> Data Source
+                </span>
+                <span id="imf-source-status" class="text-[10px] bg-accent-cyan/10 text-accent-cyan px-2 py-0.5 rounded-full border border-accent-cyan/20">GMM Filtered</span>
+              </div>
+              <div class="grid grid-cols-2 gap-1.5">
+                <button id="btn-imf-use-gmm" type="button" class="py-1.5 px-2 rounded-lg text-[11px] font-medium border border-accent-cyan/40 bg-accent-cyan/15 text-white flex items-center justify-center gap-1 transition-all">
+                  <i class="fas fa-filter text-accent-cyan"></i> GMM File
+                </button>
+                <button id="btn-imf-use-custom" type="button" class="py-1.5 px-2 rounded-lg text-[11px] font-medium border border-white/[0.08] bg-white/[0.03] text-gray-400 hover:text-white flex items-center justify-center gap-1 transition-all">
+                  <i class="fas fa-upload text-accent-violet"></i> Custom CSV
+                </button>
+              </div>
+              <div id="imf-gmm-info" class="text-[11px] text-gray-400 bg-space-800/60 rounded-lg p-2 border border-white/[0.05]">
+                Uses <code>MC_Mass</code> + optional <code>MC_CompMass</code> (or derived photometric masses).
+              </div>
+              <div id="imf-custom-upload-wrap" class="hidden space-y-1.5">
+                <div id="dropzone-imf-custom" class="border-2 border-dashed border-white/[0.12] hover:border-accent-cyan/50 rounded-lg p-2.5 text-center cursor-pointer transition-colors bg-white/[0.02]">
+                  <i class="fas fa-file-csv text-base text-accent-cyan mb-1"></i>
+                  <p class="text-[11px] text-gray-300 font-medium">Drop custom filtered .csv or click</p>
+                  <input type="file" id="file-imf-custom" accept=".csv" class="hidden">
+                </div>
+                <p id="imf-custom-file-name" class="text-[11px] text-accent-cyan truncate hidden"></p>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <label class="flex items-center justify-between text-xs text-gray-300 cursor-pointer">
+                <span>Auto Binning (Sturges rule)</span>
+                <input id="check-auto-bins" type="checkbox" checked class="accent-cyan-400 rounded">
+              </label>
+              <div>
+                <label class="text-xs text-gray-400 flex justify-between">Number of Bins: <span id="bins-value" class="text-accent-cyan font-mono">Auto</span></label>
+                <input id="slider-bins" type="range" min="5" max="25" value="10" class="w-full accent-cyan-500 mt-1 opacity-50">
+              </div>
+              <div>
+                <label class="text-xs text-gray-400 flex justify-between">Completeness Limit log₁₀(M/M☉): <span id="fit-logm-value" class="text-accent-cyan font-mono">-0.70</span></label>
+                <input id="slider-fit-logm" type="range" min="-1.10" max="0.40" step="0.05" value="-0.70" class="w-full accent-cyan-500 mt-1">
+              </div>
+              <div>
+                <label class="text-xs text-gray-400 flex justify-between">Mass Floor (M☉): <span id="mass-min-value" class="text-accent-cyan font-mono">0.08</span></label>
+                <input id="slider-mass-min" type="range" min="0.08" max="2.0" step="0.04" value="0.08" class="w-full accent-cyan-500 mt-1">
+              </div>
+              <div>
+                <label class="text-xs text-gray-400 flex justify-between">Mass Cap (M☉): <span id="mass-max-value" class="text-accent-cyan font-mono">50.0</span></label>
+                <input id="slider-mass-max" type="range" min="5.0" max="50.0" step="0.5" value="50.0" class="w-full accent-cyan-500 mt-1">
+              </div>
+              <label class="flex items-center gap-2 text-xs text-gray-300 cursor-pointer pt-1">
+                <input id="check-include-companions" type="checkbox" checked class="accent-cyan-400 rounded">
+                <span>Include Companion Masses (<code>MC_CompMass</code>)</span>
+              </label>
+            </div>
+
+            <button id="btn-compute-imf" class="w-full py-2.5 bg-gradient-to-r from-accent-cyan to-accent-violet rounded-xl text-sm font-semibold hover:shadow-[0_0_20px_rgba(0,212,255,0.3)] transition-all duration-300 flex items-center justify-center gap-2">
+              <i class="fas fa-calculator"></i> Compute Mass Function
+            </button>
+
+            <div class="grid grid-cols-2 gap-2">
+              <button id="btn-download-imf-bins" type="button" class="py-2 px-2 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] rounded-lg text-[11px] font-medium text-gray-200 flex items-center justify-center gap-1 transition-all">
+                <i class="fas fa-download text-accent-cyan"></i> Bins CSV
+              </button>
+              <button id="btn-download-imf-chi2" type="button" class="py-2 px-2 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] rounded-lg text-[11px] font-medium text-gray-200 flex items-center justify-center gap-1 transition-all">
+                <i class="fas fa-download text-accent-violet"></i> Chi2 CSV
+              </button>
+            </div>
+
+            <div id="imf-slope-display" class="rounded-xl p-4 border border-accent-cyan/20 bg-accent-cyan/[0.04] backdrop-blur-sm hidden">
+              <p class="text-xs text-gray-400 uppercase tracking-wider">Complete-Range Slope (&Gamma; = d log N / d log M)</p>
+              <p class="text-2xl font-bold text-accent-cyan mt-1 font-mono" id="imf-slope-value">—</p>
+              <p class="text-xs text-gray-400 mt-1" id="imf-r2-value">Salpeter &Gamma; = -1.35 (&alpha; = 2.35)</p>
+              <p class="text-xs mt-1 font-mono text-gray-300" id="imf-slope-delta"></p>
+            </div>
+          </div>
+
+          <div class="flex-1 space-y-6">
+            <!-- Relative Chi2 Ranking Table -->
+            <div id="imf-chi2-card" class="hidden rounded-2xl p-5 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <h4 class="text-sm font-semibold text-white flex items-center gap-2">
+                  <i class="fas fa-ranking-star text-accent-cyan"></i> Model Comparison — Relative Reduced &chi;&sup2;<sub>&nu;</sub> Ranking
+                </h4>
+                <span id="imf-meta-summary" class="text-xs text-gray-400 font-mono"></span>
+              </div>
+              <p class="text-[11px] text-gray-400">Each model is scaled so its integral over the complete mass range (<code class="text-accent-cyan">log₁₀M &ge; FIT_MIN_LOGM</code>) equals the observed star count there. Compare models <strong>relatively</strong>; do not tune <code>N_BINS</code> or <code>FIT_MIN_LOGM</code> to force a fit.</p>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr class="border-b border-white/10 text-gray-400 uppercase tracking-wider text-[10px]">
+                      <th class="py-2 px-3">Relative Rank</th>
+                      <th class="py-2 px-3">Theoretical Model</th>
+                      <th class="py-2 px-3">Reduced &chi;&sup2;<sub>&nu;</sub></th>
+                      <th class="py-2 px-3">DOF (n_fit_bins - 1)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="imf-chi2-tbody" class="divide-y divide-white/[0.05] font-mono"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="rounded-2xl p-4 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
+              <h4 class="text-sm font-medium text-gray-400 mb-2 flex items-center justify-between"><span id="imf-plot-card-title">Present-day MF — Salpeter (1955), Kroupa (2001) &amp; Chabrier (2003)</span><span id="badge-source-imf" class="text-[10px] text-accent-cyan bg-accent-cyan/10 border border-accent-cyan/20 px-2 py-0.5 rounded-full"><i class="fas fa-filter text-[9px]"></i> GMM Filtered</span></h4>
+              <div id="plot-imf" style="height: 480px; width: 100%;"></div>
+            </div>
+            <div class="rounded-2xl p-4 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
+              <h4 class="text-sm font-medium text-gray-400 mb-2 flex items-center justify-between"><span>Photometric Completeness</span><span id="badge-source-completeness" class="text-[10px] text-accent-cyan bg-accent-cyan/10 border border-accent-cyan/20 px-2 py-0.5 rounded-full"><i class="fas fa-filter text-[9px]"></i> Using GMM filtered file</span></h4>
+              <div id="plot-completeness" style="height: 360px; width: 100%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="app-footer" class="border-t border-white/[0.06] bg-white/[0.02] py-4 mt-auto z-40 relative">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <i class="fas fa-star text-accent-cyan text-sm"></i>
+          <span class="font-semibold text-sm">StarNest</span>
+          <span class="text-gray-600 text-xs">© 2025–2026</span>
+        </div>
+        <div class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-500">N. Panwar</span>
+            <a href="https://orcid.org/0000-0002-0151-2361" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="ORCID"><i class="fab fa-orcid text-xs"></i></a>
+            <a href="https://www.linkedin.com/in/neelam-panwar-1414081b/" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="LinkedIn"><i class="fab fa-linkedin-in text-xs"></i></a>
+          </div>
+          <div class="w-px h-3 bg-white/10"></div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-500">R. Kundu</span>
+            <a href="https://orcid.org/0000-0003-3466-6540" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="ORCID"><i class="fab fa-orcid text-xs"></i></a>
+            <a href="https://www.linkedin.com/in/richa-kundu-2ba28a141/" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="LinkedIn"><i class="fab fa-linkedin-in text-xs"></i></a>
+          </div>
+          <div class="w-px h-3 bg-white/10"></div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-500">N. Kaushik</span>
+            <a href="https://orcid.org/0009-0000-0870-3665" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="ORCID"><i class="fab fa-orcid text-xs"></i></a>
+            <a href="https://www.linkedin.com/in/nikhilkaushik9" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="LinkedIn"><i class="fab fa-linkedin-in text-xs"></i></a>
+            <a href="https://github.com/NIKHILKAUSHIK9" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="GitHub"><i class="fab fa-github text-xs"></i></a>
+          </div>
+          <div class="w-px h-3 bg-white/10"></div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-500">P. Basur</span>
+            <a href="https://orcid.org/0009-0000-8201-8850" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="ORCID"><i class="fab fa-orcid text-xs"></i></a>
+            <a href="http://www.linkedin.com/in/basurpryanshu" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="LinkedIn"><i class="fab fa-linkedin-in text-xs"></i></a>
+            <a href="https://github.com/pbasur" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="GitHub"><i class="fab fa-github text-xs"></i></a>
+          </div>
+          <div class="w-px h-3 bg-white/10"></div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-500">Monu</span>
+            <a href="https://orcid.org/0009-0001-6406-3735" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="ORCID"><i class="fab fa-orcid text-xs"></i></a>
+            <a href="https://www.linkedin.com/in/monu-kumar-22422a251/" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="LinkedIn"><i class="fab fa-linkedin-in text-xs"></i></a>
+          </div>
+          <div class="w-px h-3 bg-white/10"></div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-500">S. Prasad</span>
+            <a href="https://orcid.org/0009-0006-3540-8550" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="ORCID"><i class="fab fa-orcid text-xs"></i></a>
+            <a href="https://www.linkedin.com/in/shruti-prashad-6439b9283/" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="LinkedIn"><i class="fab fa-linkedin-in text-xs"></i></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

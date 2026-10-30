@@ -14,3 +14,5 @@ Put each member's photo in this folder, named after the member (lower case, `.jp
 Square or portrait photos, about 400 x 400 px or more, work best (shown as a round crop, top-aligned).
 Alternative spellings and the older names (`nikhil_pic.jpg`, `monu_pic.jpeg`, ...) are also found; `images/` and the folder of `index.html` are searched too.
 Use lower-case file names: GitHub Pages and Linux servers are case-sensitive. If no photo is found the member's initials are shown.
+
+Included: the six photos supplied for this release, already cropped to square head-and-shoulders. The uncropped originals are in `originals/` (not read by the page).

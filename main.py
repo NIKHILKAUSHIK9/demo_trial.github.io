@@ -37,6 +37,7 @@ from fastapi.staticfiles import StaticFiles
 import ocmass_extinction_isochrone as EXT
 import ocmass_gmm as GMM
 import ocmass_imf as IMF
+import ocmass_kinematics as KIN
 
 # ===================== GLOBAL CONFIGURATION =====================
 API_PREFIX = '/api'
@@ -214,7 +215,7 @@ def platform_health():
 
 @app.get(API_PREFIX + '/health')
 def health():
-    return dict(status='ok', engine='python', modules=['ocmass_gmm', 'ocmass_extinction_isochrone', 'ocmass_imf'])
+    return dict(status='ok', engine='python', modules=['ocmass_gmm', 'ocmass_extinction_isochrone', 'ocmass_kinematics', 'ocmass_imf'])
 
 
 @app.post(API_PREFIX + '/upload-raw')
@@ -379,98 +380,20 @@ def compute_cmd(p: dict):
     return _none(out)
 
 
-ICRS_TO_GAL = np.array([[-0.0548755604162154, -0.8734370902348850, -0.4838350155487132],
-                        [0.4941094278755837, -0.4448296299600112, 0.7469822444972189],
-                        [-0.8676661490190047, -0.1980763734312015, 0.4559837761750669]])
-
-
-def kin3d(ra, dec, plx, eplx, mode='precision', max_frac=0.05, depth_pc=5.0, frame='galactic', centre=True):
-    """3-D cluster map. sigma_d = d*e_Plx/Plx is purely radial (sky position is exact to ~mas) -> a round cluster becomes a needle
-    along the line of sight. precision: keep e_Plx/Plx <= max_frac | shrink: empirical-Bayes parallax toward the cluster value
-    (tau = plx_c^2*depth/1000) | raw: 1000/Plx for all. Mirrors kin3dCompute() in index.html."""
-    n = len(ra)
-    has_err = bool(np.isfinite(eplx).any() and (eplx > 0).any())
-    ok_err = np.isfinite(eplx) & (eplx > 0)
-    keep, plx_use, note = np.ones(n, bool), plx.copy(), ''
-    if mode == 'precision':
-        if not has_err:
-            note = 'No e_Plx column in this file: precision cut skipped (raw 1/Plx).'
-        else:
-            keep = ok_err & (eplx / plx <= max_frac)
-    elif mode == 'shrink':
-        if not has_err:
-            note = 'No e_Plx column in this file: shrinkage skipped (raw 1/Plx).'
-        else:
-            w = np.where(ok_err, 1.0 / np.where(ok_err, eplx, 1.0) ** 2, 0.0)
-            pc = np.sum(w * plx) / w.sum()
-            wt = 1.0 / (pc ** 2 * depth_pc / 1000.0) ** 2
-            plx_use = np.where(ok_err, (plx * w + pc * wt) / (w + wt), plx)
-    if keep.sum() < 3:
-        raise HTTPException(400, f'3D map: only {int(keep.sum())} stars pass the distance filter (mode {mode}). Loosen it or use another mode.')
-    d = 1000.0 / plx_use[keep]
-    a, b = np.radians(ra[keep]), np.radians(dec[keep])
-    P = np.c_[d * np.cos(b) * np.cos(a), d * np.cos(b) * np.sin(a), d * np.sin(b)]
-    if frame == 'galactic':
-        P = P @ ICRS_TO_GAL.T
-    med = np.median(P, axis=0)
-    diag = None
-    if len(P) >= 4:
-        w_, v_ = np.linalg.eigh(np.cov((P - med).T, bias=True))
-        los = med / np.linalg.norm(med)
-        rest = max((w_[0] + w_[1]) / 2, 1e-12)
-        diag = dict(major_sd_pc=math.sqrt(w_[2]), minor_sd_pc=math.sqrt(rest), elongation=math.sqrt(w_[2] / rest),
-                    angle_to_los_deg=math.degrees(math.acos(min(1.0, abs(float(v_[:, 2] @ los))))))
-        # Observed radial spread vs the spread parallax errors alone would produce (sigma_d = d*e_Plx/Plx, per star, RMS)
-        C = np.cov(P.T, bias=True)
-        rad = math.sqrt(max(float(los @ C @ los), 0.0))
-        diag['radial_sd_pc'] = rad
-        diag['transverse_sd_pc'] = math.sqrt(max((float(np.trace(C)) - rad ** 2) / 2, 0.0))
-        if mode != 'shrink' and has_err:
-            e_ok = ok_err[keep]
-            if e_ok.any():
-                sd_d = d[e_ok] * eplx[keep][e_ok] / plx_use[keep][e_ok]
-                diag['expected_err_sd_pc'] = float(np.sqrt(np.mean(sd_d ** 2)))
-                diag['implied_depth_pc'] = math.sqrt(max(rad ** 2 - diag['expected_err_sd_pc'] ** 2, 0.0))
-    if centre:
-        P = P - med
-    return dict(keep=keep, P=P, d=d, frac=(eplx[keep] / plx[keep]),
-                meta=dict(mode=mode, frame=frame, centred=bool(centre), max_frac=max_frac, depth_pc=depth_pc, n_used=int(keep.sum()),
-                          n_dropped=int(n - keep.sum()), median_d_pc=float(np.median(d)), note=note, diag=diag))
-
-
 @app.post(API_PREFIX + '/compute-kinematics')
 def compute_kinematics(p: dict):
+    """3-D map + PM vectors: the maths lives in ocmass_kinematics.py (this route only reads the request and shapes the reply)."""
     base = analysis_rows(p['filename'])
-    ra_k = next((k for k in ('RA_ICRS', 'RAJ2000', '_RAJ2000', 'ra', 'RA') if k in base), None)
-    de_k = next((k for k in ('DE_ICRS', 'DEJ2000', '_DEJ2000', 'dec', 'DEC') if k in base), None)
-    if ra_k is None or de_k is None:
-        raise HTTPException(400, 'No RA/Dec columns in the file.')
-    d = base.dropna(subset=[ra_k, de_k, 'Plx', 'pmRA', 'pmDE'])
-    d = d[d['Plx'] > 0]
-    if d.empty:
-        raise HTTPException(400, 'No stars with valid RA/Dec, parallax and proper motion for the kinematics plots.')
-    ra = d[ra_k].to_numpy(float)
-    if ra.max() - ra.min() > 180:
-        ra = np.where(ra < 180, ra + 360, ra)
-    dec = d[de_k].to_numpy(float)
-    rr, dr = np.radians(ra), np.radians(dec)
-    eplx_k = next((k for k in ('e_Plx', 'e_plx', 'parallax_error', 'plx_error') if k in d), None)
-    eplx = d[eplx_k].to_numpy(float) if eplx_k else np.full(len(d), np.nan)
-    res_ra, res_de = d['pmRA'].to_numpy(float) - np.median(d['pmRA']), d['pmDE'].to_numpy(float) - np.median(d['pmDE'])
-    vn = np.hypot(res_ra, res_de)
-    vn = np.where(vn < 1e-8, 1.0, vn)
-    colors = {'Main Sequence': '#00FFFF', 'Pre-Main Sequence': '#BA8E23', 'White Dwarf': '#000000', 'Red Giant / Supergiant': '#FF0000'}
-    st = d['Star_Type'].tolist() if 'Star_Type' in d else ['Main Sequence'] * len(d)
-    k3 = kin3d(ra, dec, d['Plx'].to_numpy(float), eplx, mode=p.get('kin3d_mode') or 'precision', max_frac=float(p.get('kin3d_max_frac') or 0.05),
-               depth_pc=float(p.get('kin3d_depth') or 5.0), frame=p.get('kin3d_frame') or 'galactic', centre=bool(p.get('kin3d_centre', True)))
-    st3 = [st[i] for i in np.flatnonzero(k3['keep'])]
+    try:
+        res = KIN.compute_kinematics(base, mode=p.get('kin3d_mode') or KIN.KIN3D_MODE,
+                                     max_frac=float(p.get('kin3d_max_frac') or KIN.KIN3D_MAX_FRAC),
+                                     depth_pc=float(p.get('kin3d_depth') or KIN.KIN3D_DEPTH_PC),
+                                     frame=p.get('kin3d_frame') or KIN.KIN3D_FRAME, centre=bool(p.get('kin3d_centre', KIN.KIN3D_CENTRE)))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    v = res['vectors_2d']; v.pop('res_pmra'); v.pop('res_pmde')            # raw residuals are for the CSV helper, not the page
     name = re.sub(r'newcorrected.*$', '', re.sub(r'^Extinctioncorr_', '', STATE['name'], flags=re.I), flags=re.I).split('_')[0]
-    return _none(dict(
-        cluster_name=name, meta=dict(n_in=len(base), n_used=len(d), n_dropped=len(base) - len(d)),
-        positions_3d=dict(x=k3['P'][:, 0], y=k3['P'][:, 1], z=k3['P'][:, 2], d=k3['d'], frac=k3['frac'],
-                          color=[colors.get(t, 'gray') for t in st3], star_type=st3), meta3d=k3['meta'],
-        vectors_2d=dict(ra=ra, dec=dec, u=res_ra / vn, v=res_de / vn, color=[colors.get(t, 'gray') for t in st], star_type=st,
-                        center_ra=float(np.median(ra)), center_dec=float(np.median(dec)))))
+    return _none(dict(cluster_name=name, **res))
 
 
 def _wls(x, y, sig):

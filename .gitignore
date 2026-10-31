@@ -5,9 +5,8 @@ __pycache__/
 venv/
 .ipynb_checkpoints/
 
-# outputs written by the pipeline / diagnostic tools
+# outputs written by the pipeline
 ocmass_output/
-cmd_probe_out/
 *_members.csv
 *_extinction_corrected.csv
 

@@ -194,7 +194,7 @@ Outputs: x, y, z, distance and `e_Plx/Plx` per star; the residual proper motion 
 | Scaling | formula | Each model is scaled so its integral over the complete range equals the observed count there | no free parameter |
 | Reduced chi^2 | formula | `sum(((obs - model) / sigma)^2) / (n_bins - 1)` over complete bins | compare models **relatively** |
 | Slope fit | formula | Poisson-weighted line fit in log-log over complete bins; the Salpeter slope is -1.35 | reported with error and R^2 |
-| `IMF_LOG_AGE_SPLIT` | 7.0 | Below log age 7.0 (10 Myr) the result is labelled "IMF", otherwise "Present-day MF" (dynamical evolution changes the mass function) | label |
+| `MF_LABEL` | Initial Mass Function (IMF) | Heading and plot title of the mass-function page. For clusters older than about 10 Myr, dynamical and stellar evolution can modify the observed mass function | label |
 | `COMPLETENESS_G50`, `COMPLETENESS_W` | 17.2, 0.65 | Illustrative logistic completeness curve of Gaia; **an assumption**, flagged as such | display only |
 
 ### 3.6 Web-service and session settings (`main.py`)

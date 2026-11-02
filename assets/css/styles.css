@@ -133,3 +133,41 @@ input[type=range]::-webkit-slider-thumb:hover {
 .js-plotly-plot .plotly .modebar-btn { color: rgba(255, 255, 255, 0.35) !important; }
 .js-plotly-plot .plotly .modebar-btn:hover,
 .js-plotly-plot .plotly .modebar-btn.active { color: #00d4ff !important; }
+
+/* ---- Team tiles: smooth hover (photo zoom + glowing animated border + slight enlargement) ---- */
+@property --sn-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+.team-tile {
+  position: relative;
+  transition: transform .6s cubic-bezier(.22, 1, .36, 1), box-shadow .6s ease, border-color .45s ease, background-color .45s ease;
+  will-change: transform;
+}
+/* rotating gradient ring drawn on the tile border (masked so only the 1.5px edge shows) */
+.team-tile::before {
+  content: '';
+  position: absolute; inset: -1px; border-radius: inherit; padding: 1.5px; pointer-events: none;
+  background: conic-gradient(from var(--sn-angle), #00d4ff, #7c3aed, #00d4ff 50%, #7c3aed 75%, #00d4ff);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  opacity: 0; transition: opacity .5s ease;
+}
+.team-tile img[data-photo] {
+  transform: scale(1); transform-origin: 50% 30%;
+  transition: transform 1s cubic-bezier(.22, 1, .36, 1), filter .6s ease;
+}
+.team-tile .team-ring { transition: transform .6s cubic-bezier(.22, 1, .36, 1), box-shadow .6s ease, border-color .45s ease; }
+@keyframes sn-spin { to { --sn-angle: 360deg; } }
+
+@media (hover: hover) {
+  .team-tile.glass-card:hover {
+    transform: translateY(-8px) scale(1.045);
+    border-color: rgba(0, 212, 255, .55);
+    box-shadow: 0 0 0 1px rgba(0, 212, 255, .25), 0 0 34px rgba(0, 212, 255, .28), 0 0 80px rgba(124, 58, 237, .22), 0 28px 50px -22px rgba(0, 0, 0, .75);
+  }
+  .team-tile:hover::before { opacity: 1; animation: sn-spin 4.5s linear infinite; }
+  .team-tile:hover img[data-photo] { transform: scale(1.22); filter: saturate(1.12) contrast(1.04); }
+  .team-tile:hover .team-ring { box-shadow: 0 0 0 3px rgba(0, 212, 255, .18), 0 0 28px rgba(0, 212, 255, .5); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .team-tile, .team-tile img[data-photo], .team-tile .team-ring { transition-duration: .01ms; }
+  .team-tile:hover::before { animation: none; }
+}

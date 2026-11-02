@@ -6,7 +6,8 @@ TERMINOLOGY
   Completeness   : below FIT_MIN_LOGM bins are incomplete -> shown (open markers) but excluded from fit & scaling.
   Scaling        : each model is scaled so its integral over the COMPLETE mass range equals the observed count there.
   Reduced chi2   : sum(((obs - model)/sigma)^2)/(n_bins - 1); sigma = sqrt(count)/bin_width. Compare models RELATIVELY.
-  Present-day MF : for clusters older than ~10 Myr this is NOT the IMF (dynamical evolution); label accordingly.
+  IMF label      : the result is presented as the Initial Mass Function. For clusters older than ~10 Myr dynamical and stellar evolution can
+                   modify the observed mass function, so interpret the slope with that in mind.
 CAUTION: do not tune N_BINS or FIT_MIN_LOGM to make a model fit -- that is circular.
 
 WORKFLOW
@@ -28,7 +29,7 @@ FIT_MIN_LOGM = -0.7            # completeness limit, log10(M/Msun) (~0.2 Msun)
 N_BINS = None                  # None -> min(15, max(8, ceil(log2(N)+1)))
 M_MIN_FLOOR, M_MAX_CAP = 0.08, 50.0
 MIN_MASSES = 20
-MF_KIND = 'Present-day MF'     # or 'IMF' for clusters < ~10 Myr
+MF_KIND = 'Initial Mass Function (IMF)'   # label used in plot titles
 N_CURVE_POINTS = 800
 OUT_DIR = './ocmass_output'
 # =================================================================

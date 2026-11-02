@@ -1520,7 +1520,7 @@
         }
 
         const logAgeVal = Number.isFinite(Number(params.log_age)) ? Number(params.log_age) : 7.5;
-        const mfKind = logAgeVal < 7.0 ? 'IMF' : 'Present-day MF';
+        const mfKind = 'Initial Mass Function (IMF)';
 
         const result = {
           imf: {
@@ -1860,7 +1860,7 @@
     function animateHomeEntrance() {
       gsap.fromTo('#page-home .glass-card',
         { y: 20, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.5, stagger: 0.06, ease: 'power2.out' }
+        { y: 0, opacity: 1, duration: 0.5, stagger: 0.06, ease: 'power2.out', clearProps: 'transform' }   // clearProps: let CSS hover transforms (team tiles) work afterwards
       );
     }
 
@@ -2697,17 +2697,13 @@
 
         if (reqId !== window._imfReq) return;      // a newer slider position superseded this answer
 
-        // Rule 8: Label the IMF page "Present-day MF" unless cluster age < ~10 Myr (logAge < 7.0)
-        const mfKind = data.imf.mf_kind || (logAgeVal < 7.0 ? 'IMF' : 'Present-day MF');
+        // The IMF page is always labelled 'Initial Mass Function (IMF)' (heading, plot-card title and plot title)
+        const mfKind = data.imf.mf_kind || 'Initial Mass Function (IMF)';
         const headingAccent = document.getElementById('imf-page-heading-accent');
         const regimeBadge = document.getElementById('imf-age-regime-badge');
         const plotCardTitle = document.getElementById('imf-plot-card-title');
         if (headingAccent) headingAccent.textContent = mfKind;
-        if (regimeBadge) {
-          regimeBadge.textContent = logAgeVal < 7.0
-            ? `log(Age/yr) = ${logAgeVal.toFixed(2)} < 7.0 (~10 Myr) → Initial Mass Function (IMF)`
-            : `log(Age/yr) = ${logAgeVal.toFixed(2)} ≥ 7.0 (~10 Myr) → Present-day MF (dynamical evolution)`;
-        }
+        if (regimeBadge) regimeBadge.textContent = `log(Age/yr) = ${logAgeVal.toFixed(2)} \u2192 Initial Mass Function (IMF)`;
         if (plotCardTitle) {
           plotCardTitle.textContent = `${mfKind} — model comparison (Salpeter 1955, Kroupa 2001 & Chabrier 2003)`;
         }

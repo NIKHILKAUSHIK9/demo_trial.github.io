@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StarNest — Open Star Cluster Analysis</title>
+  <title>StarNest — Young Star Cluster Analysis</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
@@ -31,9 +31,6 @@
       <div class="flex items-center gap-3 cursor-pointer" onclick="navigateToPage('home')">
         <i class="fas fa-star text-accent-cyan text-xl"></i>
         <span class="text-lg font-bold">Star<span class="text-accent-cyan">Nest</span></span>
-        <span id="engine-status-badge" class="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-0.5 rounded-full bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/20">
-          <span class="w-1.5 h-1.5 rounded-full bg-accent-cyan animate-pulse"></span> Live Engine Ready
-        </span>
       </div>
       <div id="nav-links" class="relative flex items-center gap-1 bg-white/[0.03] border border-white/[0.06] rounded-full px-1 py-1">
         <div id="nav-pill" class="absolute h-8 bg-gradient-to-r from-accent-cyan/20 to-accent-violet/20 border border-accent-cyan/30 rounded-full transition-none"></div>
@@ -53,22 +50,22 @@
       <div class="max-w-4xl mx-auto text-center mt-10 mb-16">
         <p class="text-accent-cyan/60 text-xs uppercase tracking-[0.3em] mb-4 font-medium">Gaia DR3 Pipeline</p>
         <div class="w-16 h-px bg-gradient-to-r from-transparent via-accent-cyan/50 to-transparent mx-auto mb-6"></div>
-        <h1 class="text-4xl md:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-accent-cyan via-accent-purple to-accent-violet leading-tight mb-6">Photometric &amp; Kinematic Study of Young Open Star Clusters</h1>
+        <h1 class="text-4xl md:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-accent-cyan via-accent-purple to-accent-violet leading-tight mb-6">Photometric &amp; Kinematic Study of Young Star Clusters</h1>
         <p class="text-gray-400 leading-relaxed text-base max-w-2xl mx-auto mb-4">This application provides a comprehensive pipeline for analyzing young open star clusters using Gaia DR3 data. It covers membership probability determination via Gaussian Mixture Models, isochrone fitting with extinction correction, stellar evolutionary stage labeling, kinematic analysis in Galactocentric/Heliocentric coordinates, and Initial Mass Function derivation.</p>
         <p class="text-gray-400 leading-relaxed text-base max-w-2xl mx-auto">Data filtration parameters include parallax bounds ($\sigma_\pi/\pi$), proper motion selections ($\mu_{\alpha*}, \mu_\delta$), G-band photometric errors, and Renormalized Unit Weight Error (RUWE) thresholds to ensure high-quality astrometric solutions from the Gaia catalog.</p>
       </div>
 
       <div class="max-w-6xl mx-auto mb-16">
         <h2 class="text-xl font-bold mb-2 text-center">Research Team</h2>
-        <p class="text-gray-500 text-sm text-center mb-8">Photometric &amp; Kinematic Analysis of Young Open Star Clusters</p>
+        <p class="text-gray-500 text-sm text-center mb-8">Photometric &amp; Kinematic Analysis of Young Star Clusters</p>
 
         <!-- Mentors Row (2 cards centered) -->
         <div class="flex flex-wrap justify-center gap-8 mb-8">
           <!-- Mentor: Neelam Panwar -->
-          <div class="glass-card group relative rounded-2xl p-8 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl hover:border-accent-cyan/30 hover:bg-white/[0.05] transition-all duration-500 w-72 shadow-[0_0_30px_rgba(0,212,255,0.04)]">
+          <div class="glass-card team-tile group relative rounded-2xl p-8 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl hover:border-accent-cyan/30 hover:bg-white/[0.05] transition-all duration-500 w-72 shadow-[0_0_30px_rgba(0,212,255,0.04)]">
             <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-cyan/30 to-transparent"></div>
             <div class="absolute top-3 right-3"><span class="text-[10px] uppercase tracking-widest text-accent-cyan/50 font-medium bg-accent-cyan/[0.06] px-2 py-0.5 rounded-full border border-accent-cyan/10">Mentor</span></div>
-            <div class="w-24 h-24 rounded-full bg-gradient-to-br from-accent-cyan/20 to-accent-violet/20 border-2 border-accent-cyan/30 p-0.5 flex items-center justify-center mx-auto mb-5 group-hover:scale-105 group-hover:border-accent-cyan/60 transition-all duration-500 overflow-hidden shadow-[0_0_20px_rgba(0,212,255,0.15)]">
+            <div class="team-ring w-24 h-24 rounded-full bg-gradient-to-br from-accent-cyan/20 to-accent-violet/20 border-2 border-accent-cyan/30 p-0.5 flex items-center justify-center mx-auto mb-5 group-hover:scale-105 group-hover:border-accent-cyan/60 transition-all duration-500 overflow-hidden shadow-[0_0_20px_rgba(0,212,255,0.15)]">
               <img data-photo="neelam_panwar,neelam-panwar,Neelam_Panwar,neelam" alt="Neelam Panwar" class="w-full h-full object-cover object-center rounded-full" style="display:none">
               <span style="display:flex" class="w-full h-full items-center justify-center text-xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-accent-cyan to-accent-violet">NP</span>
             </div>
@@ -82,10 +79,10 @@
           </div>
 
           <!-- Mentor: Richa Kundu -->
-          <div class="glass-card group relative rounded-2xl p-8 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl hover:border-accent-cyan/30 hover:bg-white/[0.05] transition-all duration-500 w-72 shadow-[0_0_30px_rgba(0,212,255,0.04)]">
+          <div class="glass-card team-tile group relative rounded-2xl p-8 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl hover:border-accent-cyan/30 hover:bg-white/[0.05] transition-all duration-500 w-72 shadow-[0_0_30px_rgba(0,212,255,0.04)]">
             <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-cyan/30 to-transparent"></div>
             <div class="absolute top-3 right-3"><span class="text-[10px] uppercase tracking-widest text-accent-cyan/50 font-medium bg-accent-cyan/[0.06] px-2 py-0.5 rounded-full border border-accent-cyan/10">Mentor</span></div>
-            <div class="w-24 h-24 rounded-full bg-gradient-to-br from-accent-cyan/20 to-accent-violet/20 border-2 border-accent-cyan/30 p-0.5 flex items-center justify-center mx-auto mb-5 group-hover:scale-105 group-hover:border-accent-cyan/60 transition-all duration-500 overflow-hidden shadow-[0_0_20px_rgba(0,212,255,0.15)]">
+            <div class="team-ring w-24 h-24 rounded-full bg-gradient-to-br from-accent-cyan/20 to-accent-violet/20 border-2 border-accent-cyan/30 p-0.5 flex items-center justify-center mx-auto mb-5 group-hover:scale-105 group-hover:border-accent-cyan/60 transition-all duration-500 overflow-hidden shadow-[0_0_20px_rgba(0,212,255,0.15)]">
               <img data-photo="richa_kundu,richa-kundu,Richa_Kundu,richa_kundu1,richa" alt="Richa Kundu" class="w-full h-full object-cover object-top rounded-full" style="display:none">
               <span style="display:flex" class="w-full h-full items-center justify-center text-xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-accent-cyan to-accent-violet">RK</span>
             </div>
@@ -102,9 +99,9 @@
         <!-- Researchers Row (4 cards) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <!-- Researcher: Nikhil Kaushik -->
-          <div class="glass-card group relative rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl hover:border-accent-violet/30 hover:bg-white/[0.05] transition-all duration-500 shadow-[0_0_25px_rgba(124,58,237,0.04)]">
+          <div class="glass-card team-tile group relative rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl hover:border-accent-violet/30 hover:bg-white/[0.05] transition-all duration-500 shadow-[0_0_25px_rgba(124,58,237,0.04)]">
             <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-violet/20 to-transparent"></div>
-            <div class="w-20 h-20 rounded-full bg-gradient-to-br from-accent-violet/20 to-accent-cyan/20 border-2 border-accent-violet/30 p-0.5 flex items-center justify-center mx-auto mb-4 group-hover:scale-105 group-hover:border-accent-violet/60 transition-all duration-500 overflow-hidden shadow-[0_0_18px_rgba(124,58,237,0.15)]">
+            <div class="team-ring w-20 h-20 rounded-full bg-gradient-to-br from-accent-violet/20 to-accent-cyan/20 border-2 border-accent-violet/30 p-0.5 flex items-center justify-center mx-auto mb-4 group-hover:scale-105 group-hover:border-accent-violet/60 transition-all duration-500 overflow-hidden shadow-[0_0_18px_rgba(124,58,237,0.15)]">
               <img data-photo="nikhil_kaushik,nikhil-kaushik,Nikhil_Kaushik,nikhil_pic,nikhil" alt="Nikhil Kaushik" class="w-full h-full object-cover object-top rounded-full" style="display:none">
               <span style="display:flex" class="w-full h-full items-center justify-center text-lg font-bold bg-clip-text text-transparent bg-gradient-to-br from-accent-violet to-accent-cyan">NK</span>
             </div>
@@ -120,9 +117,9 @@
           </div>
 
           <!-- Researcher: Pryanshu Basur -->
-          <div class="glass-card group relative rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl hover:border-accent-violet/30 hover:bg-white/[0.05] transition-all duration-500">
+          <div class="glass-card team-tile group relative rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl hover:border-accent-violet/30 hover:bg-white/[0.05] transition-all duration-500">
             <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-violet/20 to-transparent"></div>
-            <div class="w-20 h-20 rounded-full bg-gradient-to-br from-accent-violet/20 to-accent-cyan/20 border-2 border-accent-violet/30 p-0.5 flex items-center justify-center mx-auto mb-4 group-hover:scale-105 group-hover:border-accent-violet/60 transition-all duration-500 overflow-hidden shadow-[0_0_18px_rgba(124,58,237,0.15)]">
+            <div class="team-ring w-20 h-20 rounded-full bg-gradient-to-br from-accent-violet/20 to-accent-cyan/20 border-2 border-accent-violet/30 p-0.5 flex items-center justify-center mx-auto mb-4 group-hover:scale-105 group-hover:border-accent-violet/60 transition-all duration-500 overflow-hidden shadow-[0_0_18px_rgba(124,58,237,0.15)]">
               <img data-photo="pryanshu_basur,priyanshu_basur,pryanshu-basur,Pryanshu_Basur,pryanshu_pic,pryanshu" alt="Pryanshu Basur" class="w-full h-full object-cover object-top rounded-full" style="display:none">
               <span style="display:flex" class="w-full h-full items-center justify-center text-lg font-bold bg-clip-text text-transparent bg-gradient-to-br from-accent-violet to-accent-cyan">PB</span>
             </div>
@@ -138,9 +135,9 @@
           </div>
 
           <!-- Researcher: Monu -->
-          <div class="glass-card group relative rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl hover:border-accent-violet/30 hover:bg-white/[0.05] transition-all duration-500">
+          <div class="glass-card team-tile group relative rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl hover:border-accent-violet/30 hover:bg-white/[0.05] transition-all duration-500">
             <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-violet/20 to-transparent"></div>
-            <div class="w-20 h-20 rounded-full bg-gradient-to-br from-accent-violet/20 to-accent-cyan/20 border-2 border-accent-violet/30 p-0.5 flex items-center justify-center mx-auto mb-4 group-hover:scale-105 group-hover:border-accent-violet/60 transition-all duration-500 overflow-hidden shadow-[0_0_18px_rgba(124,58,237,0.15)]">
+            <div class="team-ring w-20 h-20 rounded-full bg-gradient-to-br from-accent-violet/20 to-accent-cyan/20 border-2 border-accent-violet/30 p-0.5 flex items-center justify-center mx-auto mb-4 group-hover:scale-105 group-hover:border-accent-violet/60 transition-all duration-500 overflow-hidden shadow-[0_0_18px_rgba(124,58,237,0.15)]">
               <img data-photo="monu,monu_kumar,Monu,monu_pic" alt="Monu" class="w-full h-full object-cover object-top rounded-full" style="display:none">
               <span style="display:flex" class="w-full h-full items-center justify-center text-lg font-bold bg-clip-text text-transparent bg-gradient-to-br from-accent-violet to-accent-cyan">M</span>
             </div>
@@ -154,9 +151,9 @@
           </div>
 
           <!-- Researcher: Shruti Prasad -->
-          <div class="glass-card group relative rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl hover:border-accent-violet/30 hover:bg-white/[0.05] transition-all duration-500">
+          <div class="glass-card team-tile group relative rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl hover:border-accent-violet/30 hover:bg-white/[0.05] transition-all duration-500">
             <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-violet/20 to-transparent"></div>
-            <div class="w-20 h-20 rounded-full bg-gradient-to-br from-accent-violet/20 to-accent-cyan/20 border-2 border-accent-violet/30 p-0.5 flex items-center justify-center mx-auto mb-4 group-hover:scale-105 group-hover:border-accent-violet/60 transition-all duration-500 overflow-hidden shadow-[0_0_18px_rgba(124,58,237,0.15)]">
+            <div class="team-ring w-20 h-20 rounded-full bg-gradient-to-br from-accent-violet/20 to-accent-cyan/20 border-2 border-accent-violet/30 p-0.5 flex items-center justify-center mx-auto mb-4 group-hover:scale-105 group-hover:border-accent-violet/60 transition-all duration-500 overflow-hidden shadow-[0_0_18px_rgba(124,58,237,0.15)]">
               <img data-photo="shruti_prasad,shruti-prasad,Shruti_Prasad,shruti_pic,shruti" alt="Shruti Prasad" class="w-full h-full object-cover object-top rounded-full" style="display:none">
               <span style="display:flex" class="w-full h-full items-center justify-center text-lg font-bold bg-clip-text text-transparent bg-gradient-to-br from-accent-violet to-accent-cyan">SP</span>
             </div>
@@ -463,7 +460,7 @@
 
               <div class="grid grid-cols-2 gap-2">
                 <div class="relative">
-                  <label class="text-xs text-gray-400 flex items-center gap-1">log(Age/yr) <span class="tooltip-trigger" data-tooltip="PARSEC log10(Age/yr), minimum floor 6.6. Clusters with logAge < 7.0 (~10 Myr) are labeled IMF; older are Present-day MF."><i class="fas fa-circle-question text-gray-500 text-[10px]"></i></span></label>
+                  <label class="text-xs text-gray-400 flex items-center gap-1">log(Age/yr) <span class="tooltip-trigger" data-tooltip="PARSEC log10(Age/yr), minimum floor 6.6. Also sets the age shown on the IMF page."><i class="fas fa-circle-question text-gray-500 text-[10px]"></i></span></label>
                   <input id="input-age" type="number" step="0.05" min="6.6" max="10.1" value="7.5" class="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:border-accent-cyan/50">
                 </div>
                 <div class="relative">
@@ -636,9 +633,9 @@
     <section id="page-imf" class="page-section absolute inset-0 overflow-y-auto p-6" style="opacity:0; visibility:hidden">
       <div class="max-w-7xl mx-auto space-y-6">
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <h2 class="text-2xl font-bold"><span id="imf-page-heading-accent" class="text-accent-cyan">Present-day MF</span> &amp; Completeness</h2>
+          <h2 class="text-2xl font-bold"><span id="imf-page-heading-accent" class="text-accent-cyan">Initial Mass Function (IMF)</span> &amp; Completeness</h2>
           <span id="imf-age-regime-badge" class="text-xs px-3 py-1 rounded-full bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/20 font-medium">
-            log(Age/yr) &ge; 7.0 &rarr; Present-day MF (dynamical evolution)
+            log(Age/yr) &rarr; Initial Mass Function (IMF)
           </span>
         </div>
 
@@ -653,7 +650,7 @@
 
         <div class="flex flex-col lg:flex-row gap-6">
           <div class="w-full lg:w-80 flex-shrink-0 rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl space-y-4 lg:self-start lg:sticky lg:top-6">
-            <h3 class="text-base font-semibold"><i class="fas fa-chart-bar text-accent-cyan"></i> OCMass IMF Controls</h3>
+            <h3 class="text-base font-semibold"><i class="fas fa-chart-bar text-accent-cyan"></i> IMF Controls</h3>
 
             <!-- IMF Data Source Selector -->
             <div class="rounded-xl p-3.5 border border-white/[0.08] bg-white/[0.02] space-y-2.5">
@@ -758,7 +755,7 @@
             </div>
 
             <div class="rounded-2xl p-4 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
-              <h4 class="text-sm font-medium text-gray-400 mb-2 flex items-center justify-between"><span id="imf-plot-card-title">Present-day MF — Salpeter (1955), Kroupa (2001) &amp; Chabrier (2003)</span><span id="badge-source-imf" class="text-[10px] text-accent-cyan bg-accent-cyan/10 border border-accent-cyan/20 px-2 py-0.5 rounded-full"><i class="fas fa-filter text-[9px]"></i> GMM Filtered</span></h4>
+              <h4 class="text-sm font-medium text-gray-400 mb-2 flex items-center justify-between"><span id="imf-plot-card-title">Initial Mass Function (IMF) — Salpeter (1955), Kroupa (2001) &amp; Chabrier (2003)</span><span id="badge-source-imf" class="text-[10px] text-accent-cyan bg-accent-cyan/10 border border-accent-cyan/20 px-2 py-0.5 rounded-full"><i class="fas fa-filter text-[9px]"></i> GMM Filtered</span></h4>
               <div id="plot-imf" style="height: 480px; width: 100%;"></div>
             </div>
             <div class="rounded-2xl p-4 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">

@@ -1,5 +1,5 @@
 # ===== GLOBAL CONFIGURATION =====
-PAGE_TITLE = "StarNest - Open Star Cluster Analysis"
+PAGE_TITLE = "StarNest - Young Star Cluster Analysis"
 FRAME_HEIGHT = 1000                 # height of the embedded page in px
 PHOTO_EXTS = (".jpg", ".jpeg", ".png", ".webp")
 BACKEND_URL = ""                    # optional external backend (Render / HF), e.g. "https://x.onrender.com"; or secret/env STARNEST_BACKEND_URL

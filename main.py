@@ -45,7 +45,7 @@ FRONTEND_HTML = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'index.
 MEMBERS_NAME = 'members_latest.csv'
 AV_PER_EBV = EXT.AV_PER_EBV
 EVOLVED_TYPES = {'White Dwarf', 'Red Giant / Supergiant'}      # masses from L(M)/MS-interp invalid for these
-IMF_LOG_AGE_SPLIT = 7.0                                        # < 7.0 (10 Myr) -> 'IMF', else 'Present-day MF'
+MF_LABEL = 'Initial Mass Function (IMF)'                         # heading / plot title of the mass-function page
 COMPLETENESS_G50, COMPLETENESS_W = 17.2, 0.65                  # ASSUMED curve (flagged assumed=True)
 KEEP_ROWS_MAX = 250000
 SESSION_COOKIE = 'sn_sid'
@@ -437,7 +437,7 @@ def compute_imf(p: dict):
     age = float(p.get('log_age') or 7.5)
     g = np.arange(8, 20.01, 0.8)
     out = dict(imf=dict(
-        mf_kind='IMF' if age < IMF_LOG_AGE_SPLIT else 'Present-day MF',
+        mf_kind=MF_LABEL,
         meta=dict(n_masses=r.meta['n_masses'], n_bins=r.meta['n_bins'], bin_width_dex=round(r.meta['bin_width_dex'], 4),
                   n_fit_bins=r.meta['n_fit_bins'], n_in_fit=r.meta['n_in_fit'], fit_min_logm=r.meta['fit_min_logm'],
                   n_excluded_evolved=n_excl, m_range=[round(r.meta['m_range'][0], 3), round(r.meta['m_range'][1], 2)]),

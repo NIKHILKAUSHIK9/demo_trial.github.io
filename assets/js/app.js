@@ -1830,7 +1830,7 @@
       const targetEl = document.getElementById('page-' + targetPageName);
       if (!currentEl || !targetEl) { isTransitioning = false; return; }
 
-      window.scrollTo(0, 0);                        // every page starts at the top of the (global) scroll
+      window.scrollTo(0, 0); document.body.scrollTop = 0;   // every page starts at the top (document scroll, or <body> scroll when embedded)
       targetEl.classList.add('is-entering');        // out of flow, full height, while it slides in
       gsap.set(targetEl, { visibility: 'visible', opacity: 1, x: direction * window.innerWidth });
 

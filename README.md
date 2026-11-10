@@ -1,4 +1,4 @@
-# StarNest 
+# StarNest
 
 **Photometry and kinematics of open star clusters with Gaia DR3**: from a raw Gaia cone-search CSV to cluster members, extinction, an isochrone fit, 3-D / proper-motion kinematics and a mass-function comparison, in one web app and as plain Python modules.
 

@@ -238,3 +238,8 @@ body.ws-footer #engine-badge { bottom: 2.9rem !important; }      /* keep the eng
   .side-sticky { top: 5rem; }
   .side-scroll { max-height: calc(100vh - 8rem); }               /* 4rem nav + gaps + 36px status bar */
 }
+
+
+/* ===== Embedded (iframe) mode: the iframe cannot scroll its document, so <body> becomes the single scroller ===== */
+html.embedded { height: 100%; overflow: hidden; }
+html.embedded body { height: 100%; overflow-x: hidden; overflow-y: auto; }

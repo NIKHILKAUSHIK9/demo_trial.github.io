@@ -1,5 +1,5 @@
 """
-ocmass_imf.py -- Stage 3: mass-function binning + Salpeter / Kroupa / Chabrier comparison (no UI code).
+imf.py -- Stage 3: mass-function binning + Salpeter / Kroupa / Chabrier comparison (no UI code).
 
 TERMINOLOGY
   dN/dlogM       : number of stars per dex of mass. Salpeter slope in log-log = 1 - alpha = -1.35.
@@ -31,7 +31,7 @@ M_MIN_FLOOR, M_MAX_CAP = 0.08, 50.0
 MIN_MASSES = 20
 MF_KIND = 'Initial Mass Function (IMF)'   # label used in plot titles
 N_CURVE_POINTS = 800
-OUT_DIR = './ocmass_output'
+OUT_DIR = './starnest_output'
 # =================================================================
 
 

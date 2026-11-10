@@ -1,6 +1,6 @@
 # ===== GLOBAL CONFIGURATION =====
-PAGE_TITLE = "StarNest - Young Star Cluster Analysis"
-FRAME_HEIGHT = 1000                 # height of the embedded page in px
+PAGE_TITLE = "StarNest - Open Star Cluster Analysis"
+FRAME_HEIGHT = 1000                 # fallback height (px); normally the frame is resized to the browser-window height
 PHOTO_EXTS = (".jpg", ".jpeg", ".png", ".webp")
 BACKEND_URL = ""                    # optional external backend (Render / HF), e.g. "https://x.onrender.com"; or secret/env STARNEST_BACKEND_URL
 PROBE_TIMEOUT_MS = 20000            # first call wakes the Streamlit<->page bridge; give it time
@@ -17,7 +17,7 @@ import streamlit.components.v1 as components
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 st.set_page_config(page_title=PAGE_TITLE, layout="wide", initial_sidebar_state="collapsed")
-st.markdown("<style>header,footer{visibility:hidden;height:0} .block-container{padding:0!important;max-width:100%!important}</style>", unsafe_allow_html=True)
+st.markdown("<style>header,footer{visibility:hidden;height:0} .block-container{padding:0!important;max-width:100%!important} html,body,[data-testid=stAppViewContainer],[data-testid=stMain]{overflow:hidden!important}</style>", unsafe_allow_html=True)
 
 
 def _secret() -> str:
@@ -45,7 +45,7 @@ def inline_page(flags: str, extra_js: str = "") -> str:
     html = (ROOT / "index.html").read_text(encoding="utf-8")
     css = (ROOT / "assets/css/styles.css").read_text(encoding="utf-8")
     html = html.replace('<link rel="stylesheet" href="assets/css/styles.css">', f"<style>{css}</style>")
-    for name in ("tailwind-config", "app"):
+    for name in ("tailwind-config", "app", "footer"):
         js = (ROOT / f"assets/js/{name}.js").read_text(encoding="utf-8").replace("</script>", "<\\/script>")
         tag = f'<script src="assets/js/{name}.js"></script>'
         pre = f"<script>{extra_js}</script>" if (name == "app" and extra_js) else ""

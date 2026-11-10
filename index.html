@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StarNest — Young Star Cluster Analysis</title>
+  <title>StarNest — Open Star Cluster Analysis</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
@@ -11,8 +11,19 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="assets/js/tailwind-config.js"></script>
   <link rel="stylesheet" href="assets/css/styles.css">
+  <script>
+    /* When embedded (Streamlit), make the frame as tall as the browser window so the page's own (global) scroll is the only
+       scrollbar and the fixed navbar stays pinned. Needs same-origin access to the parent; silently skipped otherwise. */
+    window.STARNEST_VIEWPORT_HEIGHT = function () { try { return window.parent.innerHeight || 0; } catch (e) { return 0; } };
+    (function () {
+      function fit() { try { var h = window.STARNEST_VIEWPORT_HEIGHT(); if (h && window.frameElement && !window.STARNEST_BRIDGE) window.frameElement.style.height = h + 'px'; } catch (e) {} }
+      if (window.self !== window.top) { fit(); window.addEventListener('resize', fit); }
+    })();
+  </script>
 </head>
 <body class="bg-space-950 text-white font-sans min-h-screen flex flex-col">
+  <!-- goo filter used by the workflow-tile ooze animation -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><filter id="sn-goo" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="9" result="b"/><feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9"/></filter></defs></svg>
 
   <div id="loading-overlay" class="fixed inset-0 z-[100] bg-space-950 flex items-center justify-center">
     <div class="text-center">
@@ -43,21 +54,146 @@
     </div>
   </nav>
 
-  <main id="pages-container" class="relative mt-16 overflow-hidden flex-1" style="min-height: calc(100vh - 4rem)">
+  <main id="pages-container" class="relative mt-16 flex-1" style="min-height: calc(100vh - 4rem)">
 
     <!-- PAGE: HOME -->
-    <section id="page-home" class="page-section absolute inset-0 overflow-y-auto p-6">
+    <section id="page-home" class="page-section is-active p-6">
       <div class="max-w-4xl mx-auto text-center mt-10 mb-16">
         <p class="text-accent-cyan/60 text-xs uppercase tracking-[0.3em] mb-4 font-medium">Gaia DR3 Pipeline</p>
         <div class="w-16 h-px bg-gradient-to-r from-transparent via-accent-cyan/50 to-transparent mx-auto mb-6"></div>
-        <h1 class="text-4xl md:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-accent-cyan via-accent-purple to-accent-violet leading-tight mb-6">Photometric &amp; Kinematic Study of Young Star Clusters</h1>
-        <p class="text-gray-400 leading-relaxed text-base max-w-2xl mx-auto mb-4">This application provides a comprehensive pipeline for analyzing young open star clusters using Gaia DR3 data. It covers membership probability determination via Gaussian Mixture Models, isochrone fitting with extinction correction, stellar evolutionary stage labeling, kinematic analysis in Galactocentric/Heliocentric coordinates, and Initial Mass Function derivation.</p>
-        <p class="text-gray-400 leading-relaxed text-base max-w-2xl mx-auto">Data filtration parameters include parallax bounds ($\sigma_\pi/\pi$), proper motion selections ($\mu_{\alpha*}, \mu_\delta$), G-band photometric errors, and Renormalized Unit Weight Error (RUWE) thresholds to ensure high-quality astrometric solutions from the Gaia catalog.</p>
+        <h1 class="text-4xl md:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-accent-cyan via-accent-purple to-accent-violet leading-tight mb-6">Photometric &amp; Kinematic Study of Open Star Clusters</h1>
+        <div class="max-w-3xl mx-auto text-left space-y-4">
+          <p class="text-gray-400 leading-relaxed text-base">Open clusters are among the best natural laboratories for stellar evolution: their stars formed together, share a common age and chemical composition, and lie at nearly the same distance. Turning raw survey data into cluster parameters, however, normally means stitching together separate scripts for quality cuts, membership selection, extinction correction, isochrone fitting and mass-function analysis.</p>
+          <p class="text-gray-400 leading-relaxed text-base">This application automates that full workflow for <em class="text-gray-300">Gaia DR3</em> data and accompanies our study of six open clusters (Haffner 14, Melotte 111, NGC 2910, Ruprecht 147, UBC 52, UPK 545) spanning a wide range of log(age/yr).<!-- TODO(NK): the supplied text ended at "spanning log(age/yr)" - insert the age range here --></p>
+        </div>
+      </div>
+
+      <div id="home-workflow" class="max-w-6xl mx-auto mb-16">
+        <h2 class="text-xl font-bold mb-2 text-center">What the pipeline does</h2>
+        <p class="text-gray-500 text-sm text-center mb-8">Six stages from raw Gaia DR3 catalogue to mass function &mdash; hover (or tap) a stage for details</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div class="wf-tile glass-card" tabindex="0" role="button" aria-label="Quality filtering: show details" style="--c1:#00d4ff;--c2:#3b82f6">
+            <div class="wf-ooze" aria-hidden="true"><i class="wf-main"></i><i style="--x:6%;--d:0ms;--z:5.2"></i><i style="--x:22%;--d:70ms;--z:5.8"></i><i style="--x:38%;--d:30ms;--z:6.2"></i><i style="--x:55%;--d:110ms;--z:6.0"></i><i style="--x:71%;--d:50ms;--z:5.8"></i><i style="--x:88%;--d:90ms;--z:5.4"></i><i style="--x:97%;--d:20ms;--z:5.0"></i></div>
+            <div class="wf-content">
+              <div class="flex items-center justify-between">
+                <span class="wf-num">01</span>
+                <i class="fas fa-filter wf-icon"></i>
+              </div>
+              <h4 class="wf-title">Quality filtering</h4>
+              <div class="wf-swap">
+                <p class="wf-tease">Clean Gaia astrometry</p>
+                <div class="wf-detail">
+                  <p>RUWE, astrometric excess noise and goodness-of-fit, visibility periods, parallax S/N and proper-motion error cuts.</p>
+                  <a href="#" data-navigate="membership" class="wf-open">Open <i class="fas fa-arrow-right"></i></a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="wf-tile glass-card" tabindex="0" role="button" aria-label="Membership: show details" style="--c1:#3b82f6;--c2:#7c3aed">
+            <div class="wf-ooze" aria-hidden="true"><i class="wf-main"></i><i style="--x:6%;--d:0ms;--z:5.2"></i><i style="--x:22%;--d:70ms;--z:5.8"></i><i style="--x:38%;--d:30ms;--z:6.2"></i><i style="--x:55%;--d:110ms;--z:6.0"></i><i style="--x:71%;--d:50ms;--z:5.8"></i><i style="--x:88%;--d:90ms;--z:5.4"></i><i style="--x:97%;--d:20ms;--z:5.0"></i></div>
+            <div class="wf-content">
+              <div class="flex items-center justify-between">
+                <span class="wf-num">02</span>
+                <i class="fas fa-users-gear wf-icon"></i>
+              </div>
+              <h4 class="wf-title">Membership</h4>
+              <div class="wf-swap">
+                <p class="wf-tease">Who belongs to the cluster?</p>
+                <div class="wf-detail">
+                  <p>A two-component Gaussian Mixture Model in (&mu;<sub>&alpha;</sub>, &mu;<sub>&delta;</sub>, &varpi;) space, with a distance pre-selection window and membership probabilities (members: <i>P</i> &ge; 0.8).</p>
+                  <a href="#" data-navigate="membership" class="wf-open">Open <i class="fas fa-arrow-right"></i></a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="wf-tile glass-card" tabindex="0" role="button" aria-label="Photometry: show details" style="--c1:#7c3aed;--c2:#a855f7">
+            <div class="wf-ooze" aria-hidden="true"><i class="wf-main"></i><i style="--x:6%;--d:0ms;--z:5.2"></i><i style="--x:22%;--d:70ms;--z:5.8"></i><i style="--x:38%;--d:30ms;--z:6.2"></i><i style="--x:55%;--d:110ms;--z:6.0"></i><i style="--x:71%;--d:50ms;--z:5.8"></i><i style="--x:88%;--d:90ms;--z:5.4"></i><i style="--x:97%;--d:20ms;--z:5.0"></i></div>
+            <div class="wf-content">
+              <div class="flex items-center justify-between">
+                <span class="wf-num">03</span>
+                <i class="fas fa-chart-line wf-icon"></i>
+              </div>
+              <h4 class="wf-title">Photometry</h4>
+              <div class="wf-swap">
+                <p class="wf-tease">Distance, extinction, CMD</p>
+                <div class="wf-detail">
+                  <p>Distance and extinction correction (E(B&minus;V) from IRSA dust maps, Gaia band coefficients), then CMD construction with PARSEC isochrone fitting for age and metallicity.</p>
+                  <a href="#" data-navigate="isochrone" class="wf-open">Open <i class="fas fa-arrow-right"></i></a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="wf-tile glass-card" tabindex="0" role="button" aria-label="Evolutionary stage labelling: show details" style="--c1:#a855f7;--c2:#ec4899">
+            <div class="wf-ooze" aria-hidden="true"><i class="wf-main"></i><i style="--x:6%;--d:0ms;--z:5.2"></i><i style="--x:22%;--d:70ms;--z:5.8"></i><i style="--x:38%;--d:30ms;--z:6.2"></i><i style="--x:55%;--d:110ms;--z:6.0"></i><i style="--x:71%;--d:50ms;--z:5.8"></i><i style="--x:88%;--d:90ms;--z:5.4"></i><i style="--x:97%;--d:20ms;--z:5.0"></i></div>
+            <div class="wf-content">
+              <div class="flex items-center justify-between">
+                <span class="wf-num">04</span>
+                <i class="fas fa-tags wf-icon"></i>
+              </div>
+              <h4 class="wf-title">Evolutionary stage labelling</h4>
+              <div class="wf-swap">
+                <p class="wf-tease">Where each star is in its life</p>
+                <div class="wf-detail">
+                  <p>Main sequence, pre-main sequence, red giant/supergiant and white dwarf candidates.</p>
+                  <a href="#" data-navigate="isochrone" class="wf-open">Open <i class="fas fa-arrow-right"></i></a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="wf-tile glass-card" tabindex="0" role="button" aria-label="Kinematics: show details" style="--c1:#06b6d4;--c2:#7c3aed">
+            <div class="wf-ooze" aria-hidden="true"><i class="wf-main"></i><i style="--x:6%;--d:0ms;--z:5.2"></i><i style="--x:22%;--d:70ms;--z:5.8"></i><i style="--x:38%;--d:30ms;--z:6.2"></i><i style="--x:55%;--d:110ms;--z:6.0"></i><i style="--x:71%;--d:50ms;--z:5.8"></i><i style="--x:88%;--d:90ms;--z:5.4"></i><i style="--x:97%;--d:20ms;--z:5.0"></i></div>
+            <div class="wf-content">
+              <div class="flex items-center justify-between">
+                <span class="wf-num">05</span>
+                <i class="fas fa-globe wf-icon"></i>
+              </div>
+              <h4 class="wf-title">Kinematics</h4>
+              <div class="wf-swap">
+                <p class="wf-tease">How the cluster moves</p>
+                <div class="wf-detail">
+                  <p>Proper-motion vectors and spatial distribution of members in heliocentric and Galactocentric frames.</p>
+                  <a href="#" data-navigate="kinematics" class="wf-open">Open <i class="fas fa-arrow-right"></i></a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="wf-tile glass-card" tabindex="0" role="button" aria-label="Initial Mass Function: show details" style="--c1:#00d4ff;--c2:#a855f7">
+            <div class="wf-ooze" aria-hidden="true"><i class="wf-main"></i><i style="--x:6%;--d:0ms;--z:5.2"></i><i style="--x:22%;--d:70ms;--z:5.8"></i><i style="--x:38%;--d:30ms;--z:6.2"></i><i style="--x:55%;--d:110ms;--z:6.0"></i><i style="--x:71%;--d:50ms;--z:5.8"></i><i style="--x:88%;--d:90ms;--z:5.4"></i><i style="--x:97%;--d:20ms;--z:5.0"></i></div>
+            <div class="wf-content">
+              <div class="flex items-center justify-between">
+                <span class="wf-num">06</span>
+                <i class="fas fa-chart-bar wf-icon"></i>
+              </div>
+              <h4 class="wf-title">Initial Mass Function</h4>
+              <div class="wf-swap">
+                <p class="wf-tease">How the masses are distributed</p>
+                <div class="wf-detail">
+                  <p>Log-binned mass functions with Poisson errors, power-law slope &Gamma; compared against Salpeter (1955), Kroupa (2001) and Chabrier (2003).</p>
+                  <a href="#" data-navigate="imf" class="wf-open">Open <i class="fas fa-arrow-right"></i></a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="max-w-6xl mx-auto mb-16">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div class="glass-card rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03]">
+            <h3 class="text-base font-semibold mb-2 flex items-center gap-2"><i class="fas fa-play text-accent-cyan"></i> How to use it</h3>
+            <p class="text-sm text-gray-400 leading-relaxed">Choose a cluster in the sidebar, adjust the filter and membership thresholds, and inspect the vector-point diagram, CMD, spatial map and mass function as they update.</p>
+          </div>
+          <div class="glass-card rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03]">
+            <h3 class="text-base font-semibold mb-2 flex items-center gap-2"><i class="fas fa-triangle-exclamation text-yellow-400"></i> Caveats</h3>
+            <p class="text-sm text-gray-400 leading-relaxed">Ages of clusters without a clear main-sequence turn-off are uncertain, and mass-function slopes for low-<i>N</i> clusters are consistent with, not tight constraints on, the Salpeter value. Results are exploratory and not a substitute for detailed follow-up.</p>
+          </div>
+        </div>
+        <p class="text-xs text-gray-500 text-center mt-6">Data: ESA Gaia DR3 &middot; Isochrones: PARSEC &middot; Cluster parameters: COCD</p>
       </div>
 
       <div class="max-w-6xl mx-auto mb-16">
         <h2 class="text-xl font-bold mb-2 text-center">Research Team</h2>
-        <p class="text-gray-500 text-sm text-center mb-8">Photometric &amp; Kinematic Analysis of Young Star Clusters</p>
+        <p class="text-gray-500 text-sm text-center mb-8">Photometric &amp; Kinematic Analysis of Open Star Clusters</p>
 
         <!-- Mentors Row (2 cards centered) -->
         <div class="flex flex-wrap justify-center gap-8 mb-8">
@@ -167,37 +303,11 @@
           </div>
         </div>
       </div>
-
-      <div class="max-w-6xl mx-auto mb-12">
-        <h2 class="text-xl font-bold mb-6 text-center">Quick Actions</h2>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div class="glass-card group relative rounded-xl p-5 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm hover:border-accent-cyan/40 cursor-pointer transition-all duration-300" data-navigate="membership">
-            <i class="fas fa-users-gear text-2xl text-accent-cyan group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(0,212,255,0.5)]"></i>
-            <h4 class="text-sm font-medium mt-3 text-white">Membership</h4>
-            <p class="text-xs text-gray-500 mt-1">GMM Analysis</p>
-          </div>
-          <div class="glass-card group relative rounded-xl p-5 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm hover:border-accent-cyan/40 cursor-pointer transition-all duration-300" data-navigate="isochrone">
-            <i class="fas fa-chart-line text-2xl text-accent-cyan group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(0,212,255,0.5)]"></i>
-            <h4 class="text-sm font-medium mt-3 text-white">Isochrone</h4>
-            <p class="text-xs text-gray-500 mt-1">Extinction &amp; CMD</p>
-          </div>
-          <div class="glass-card group relative rounded-xl p-5 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm hover:border-accent-cyan/40 cursor-pointer transition-all duration-300" data-navigate="kinematics">
-            <i class="fas fa-globe text-2xl text-accent-cyan group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(0,212,255,0.5)]"></i>
-            <h4 class="text-sm font-medium mt-3 text-white">Kinematics</h4>
-            <p class="text-xs text-gray-500 mt-1">Heliocentric 3D &amp; PM vectors</p>
-          </div>
-          <div class="glass-card group relative rounded-xl p-5 border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm hover:border-accent-cyan/40 cursor-pointer transition-all duration-300" data-navigate="imf">
-            <i class="fas fa-chart-bar text-2xl text-accent-cyan group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(0,212,255,0.5)]"></i>
-            <h4 class="text-sm font-medium mt-3 text-white">IMF &amp; Completeness</h4>
-            <p class="text-xs text-gray-500 mt-1">Mass Function</p>
-          </div>
-        </div>
-      </div>
     </section>
 
-    <section id="page-membership" class="page-section absolute inset-0 overflow-y-auto p-6" style="opacity:0; visibility:hidden">
+    <section id="page-membership" class="page-section p-6" style="opacity:0; visibility:hidden">
       <div class="gmm-split max-w-7xl mx-auto flex flex-col lg:flex-row gap-6">
-        <div id="panel-membership" class="gmm-scroll w-full lg:w-80 flex-shrink-0 rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl space-y-4">
+        <div id="panel-membership" class="side-sticky side-scroll w-full lg:w-80 flex-shrink-0 rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl space-y-4">
           <h3 class="text-lg font-semibold flex items-center gap-2"><i class="fas fa-sliders text-accent-cyan"></i> GMM Parameters</h3>
 
           <div id="dropzone-raw" class="border-2 border-dashed border-white/[0.08] hover:border-accent-cyan/40 rounded-xl p-5 text-center cursor-pointer transition-all duration-300 bg-white/[0.02] hover:bg-accent-cyan/[0.03]">
@@ -307,9 +417,9 @@
           </div>
         </div>
 
-        <div id="gmm-results-scroll" class="gmm-scroll flex-1 min-w-0 space-y-6">
+        <div id="gmm-results-scroll" class="flex-1 min-w-0 space-y-6">
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
-            <h2 class="text-2xl font-bold">Membership Probability <span class="text-accent-cyan">(OCMass GMM)</span></h2>
+            <h2 class="text-2xl font-bold">Membership Probability <span class="text-accent-cyan">(GMM)</span></h2>
             <div class="text-xs text-accent-cyan/90 bg-accent-cyan/10 px-3 py-1 rounded-full border border-accent-cyan/20 flex items-center gap-1.5 self-start md:self-auto">
               <i class="fas fa-filter text-[10px]"></i> <span>BIC K-Selection &amp; Smallest det(&Sigma;) Cluster Component</span>
             </div>
@@ -373,7 +483,7 @@
       </div>
     </section>
 
-    <section id="page-isochrone" class="page-section absolute inset-0 overflow-y-auto p-6" style="opacity:0; visibility:hidden">
+    <section id="page-isochrone" class="page-section p-6" style="opacity:0; visibility:hidden">
       <div class="max-w-6xl mx-auto space-y-6">
         <h2 class="text-2xl font-bold">Isochrone Fit &amp; <span class="text-accent-cyan">Extinction Correction</span></h2>
 
@@ -426,7 +536,7 @@
         </div>
 
         <div class="flex flex-col lg:flex-row gap-6">
-          <div id="panel-isochrone" class="w-full lg:w-80 flex-shrink-0 rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl space-y-4 lg:self-start lg:sticky lg:top-6">
+          <div id="panel-isochrone" class="side-sticky side-scroll w-full lg:w-80 flex-shrink-0 rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl space-y-4">
             <h3 class="text-base font-semibold flex items-center gap-2"><i class="fas fa-sun text-yellow-400"></i> Extinction &amp; PARSEC</h3>
             <p class="text-[10px] text-accent-cyan">Schlafly &amp; Finkbeiner (2011): A_V = 2.742 &times; E(B-V)</p>
 
@@ -561,7 +671,7 @@
       </div>
     </section>
 
-    <section id="page-kinematics" class="page-section absolute inset-0 overflow-y-auto p-6" style="opacity:0; visibility:hidden">
+    <section id="page-kinematics" class="page-section p-6" style="opacity:0; visibility:hidden">
       <div class="max-w-7xl mx-auto space-y-6">
         <div class="flex flex-wrap items-center justify-between gap-4">
           <h2 class="text-2xl font-bold">Kinematic <span class="text-accent-cyan">Analysis</span></h2>
@@ -630,7 +740,7 @@
       </div>
     </section>
 
-    <section id="page-imf" class="page-section absolute inset-0 overflow-y-auto p-6" style="opacity:0; visibility:hidden">
+    <section id="page-imf" class="page-section p-6" style="opacity:0; visibility:hidden">
       <div class="max-w-7xl mx-auto space-y-6">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <h2 class="text-2xl font-bold"><span id="imf-page-heading-accent" class="text-accent-cyan">Initial Mass Function (IMF)</span> &amp; Completeness</h2>
@@ -649,7 +759,7 @@
         </div>
 
         <div class="flex flex-col lg:flex-row gap-6">
-          <div class="w-full lg:w-80 flex-shrink-0 rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl space-y-4 lg:self-start lg:sticky lg:top-6">
+          <div id="panel-imf" class="side-sticky side-scroll w-full lg:w-80 flex-shrink-0 rounded-2xl p-4 border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl space-y-3">
             <h3 class="text-base font-semibold"><i class="fas fa-chart-bar text-accent-cyan"></i> IMF Controls</h3>
 
             <!-- IMF Data Source Selector -->
@@ -768,57 +878,113 @@
     </section>
   </main>
 
-  <footer id="app-footer" class="border-t border-white/[0.06] bg-white/[0.02] py-4 mt-auto z-40 relative">
-    <div class="max-w-7xl mx-auto px-6">
-      <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
-          <i class="fas fa-star text-accent-cyan text-sm"></i>
-          <span class="font-semibold text-sm">StarNest</span>
-          <span class="text-gray-600 text-xs">© 2025–2026</span>
+  <!-- ===== Footer variant A: full academic / technical footer (Home only) ===== -->
+  <footer id="footer-home" class="border-t border-white/[0.06] bg-white/[0.02] mt-auto z-40 relative">
+    <div class="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-3 gap-10">
+      <!-- Column 1: identity, license, affiliations -->
+      <div>
+        <div class="flex flex-wrap items-center gap-2.5 mb-3">
+          <i class="fas fa-star text-accent-cyan"></i>
+          <span class="font-bold text-lg">StarNest</span>
+          <span class="font-mono text-[11px] px-2 py-0.5 rounded bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/25">v1.0.0</span>
+          <span class="text-[11px] px-2 py-0.5 rounded bg-accent-violet/15 text-accent-purple border border-accent-violet/30">MIT License</span>
         </div>
-        <div class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-500">N. Panwar</span>
-            <a href="https://orcid.org/0000-0002-0151-2361" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="ORCID"><i class="fab fa-orcid text-xs"></i></a>
-            <a href="https://www.linkedin.com/in/neelam-panwar-1414081b/" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="LinkedIn"><i class="fab fa-linkedin-in text-xs"></i></a>
-          </div>
-          <div class="w-px h-3 bg-white/10"></div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-500">R. Kundu</span>
-            <a href="https://orcid.org/0000-0003-3466-6540" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="ORCID"><i class="fab fa-orcid text-xs"></i></a>
-            <a href="https://www.linkedin.com/in/richa-kundu-2ba28a141/" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="LinkedIn"><i class="fab fa-linkedin-in text-xs"></i></a>
-          </div>
-          <div class="w-px h-3 bg-white/10"></div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-500">N. Kaushik</span>
-            <a href="https://orcid.org/0009-0000-0870-3665" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="ORCID"><i class="fab fa-orcid text-xs"></i></a>
-            <a href="https://www.linkedin.com/in/nikhilkaushik9" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="LinkedIn"><i class="fab fa-linkedin-in text-xs"></i></a>
-            <a href="https://github.com/NIKHILKAUSHIK9" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="GitHub"><i class="fab fa-github text-xs"></i></a>
-          </div>
-          <div class="w-px h-3 bg-white/10"></div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-500">P. Basur</span>
-            <a href="https://orcid.org/0009-0000-8201-8850" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="ORCID"><i class="fab fa-orcid text-xs"></i></a>
-            <a href="http://www.linkedin.com/in/basurpryanshu" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="LinkedIn"><i class="fab fa-linkedin-in text-xs"></i></a>
-            <a href="https://github.com/pbasur" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="GitHub"><i class="fab fa-github text-xs"></i></a>
-          </div>
-          <div class="w-px h-3 bg-white/10"></div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-500">Monu</span>
-            <a href="https://orcid.org/0009-0001-6406-3735" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="ORCID"><i class="fab fa-orcid text-xs"></i></a>
-            <a href="https://www.linkedin.com/in/monu-kumar-22422a251/" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="LinkedIn"><i class="fab fa-linkedin-in text-xs"></i></a>
-          </div>
-          <div class="w-px h-3 bg-white/10"></div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-500">S. Prasad</span>
-            <a href="https://orcid.org/0009-0006-3540-8550" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="ORCID"><i class="fab fa-orcid text-xs"></i></a>
-            <a href="https://www.linkedin.com/in/shruti-prashad-6439b9283/" target="_blank" class="text-gray-500 hover:text-accent-cyan transition-all" title="LinkedIn"><i class="fab fa-linkedin-in text-xs"></i></a>
-          </div>
+        <p class="text-sm text-gray-400 leading-relaxed mb-5"><em>An end-to-end interactive photometric and kinematic pipeline for open star cluster analysis using Gaia DR3 astrometry, Gaussian Mixture Models, IRSA dust extinction, and PARSEC isochrones.</em></p>
+        <h5 class="text-[11px] uppercase tracking-widest text-gray-500 mb-2">Institutions</h5>
+        <div class="flex flex-wrap gap-2"><span class="px-2.5 py-1 rounded-full text-[11px] text-gray-300 bg-white/[0.04] border border-white/[0.08]">ARIES Nainital</span><span class="px-2.5 py-1 rounded-full text-[11px] text-gray-300 bg-white/[0.04] border border-white/[0.08]">Miranda House (DU)</span><span class="px-2.5 py-1 rounded-full text-[11px] text-gray-300 bg-white/[0.04] border border-white/[0.08]">IIT Roorkee</span><span class="px-2.5 py-1 rounded-full text-[11px] text-gray-300 bg-white/[0.04] border border-white/[0.08]">IIT Mandi</span><span class="px-2.5 py-1 rounded-full text-[11px] text-gray-300 bg-white/[0.04] border border-white/[0.08]">Dept. of Physics &amp; Astrophysics (DU)</span><span class="px-2.5 py-1 rounded-full text-[11px] text-gray-300 bg-white/[0.04] border border-white/[0.08]">IISc Bengaluru</span></div>
+      </div>
+
+      <!-- Column 2: modules + provenance -->
+      <div>
+        <h5 class="text-[11px] uppercase tracking-widest text-gray-500 mb-3">Pipeline modules</h5>
+        <ul class="space-y-2 text-sm mb-6">
+          <li><a href="#" data-footer-jump="membership" class="text-gray-300 hover:text-accent-cyan transition-colors"><span class="font-mono text-accent-cyan/80 mr-1.5">01.</span>GMM Membership</a></li>
+          <li><a href="#" data-footer-jump="isochrone" class="text-gray-300 hover:text-accent-cyan transition-colors"><span class="font-mono text-accent-cyan/80 mr-1.5">02.</span>Extinction &amp; PARSEC CMD</a></li>
+          <li><a href="#" data-footer-jump="kinematics" class="text-gray-300 hover:text-accent-cyan transition-colors"><span class="font-mono text-accent-cyan/80 mr-1.5">03.</span>3D Spatial &amp; Vector Kinematics</a></li>
+          <li><a href="#" data-footer-jump="imf" class="text-gray-300 hover:text-accent-cyan transition-colors"><span class="font-mono text-accent-cyan/80 mr-1.5">04.</span>Initial Mass Function (IMF)</a></li>
+        </ul>
+        <h5 class="text-[11px] uppercase tracking-widest text-gray-500 mb-2">Archival &amp; pipeline credits</h5>
+        <dl class="text-xs text-gray-400 space-y-1.5 mb-6">
+          <div class="flex gap-2"><dt class="text-gray-500 w-24 shrink-0">Astrometry</dt><dd>ESA Gaia DR3 Catalogue</dd></div>
+          <div class="flex gap-2"><dt class="text-gray-500 w-24 shrink-0">Dust extinction</dt><dd>Caltech IRSA / SFD (Schlafly &amp; Finkbeiner 2011)</dd></div>
+          <div class="flex gap-2"><dt class="text-gray-500 w-24 shrink-0">Isochrones</dt><dd>PARSEC v1.2S via CMD 3.8</dd></div>
+          <div class="flex gap-2"><dt class="text-gray-500 w-24 shrink-0">Cluster reference</dt><dd>COCD Catalogue</dd></div>
+        </dl>
+        <div class="flex flex-wrap gap-3 text-sm">
+          <a data-repo-link href="https://github.com/NIKHILKAUSHIK9/demo_trial.github.io" target="_blank" rel="noopener" class="inline-flex items-center gap-2 text-gray-300 hover:text-accent-cyan transition-colors"><i class="fab fa-github"></i> GitHub Repository</a>
+          <a data-issues-link href="https://github.com/NIKHILKAUSHIK9/demo_trial.github.io/issues" target="_blank" rel="noopener" class="inline-flex items-center gap-2 text-gray-300 hover:text-accent-cyan transition-colors"><i class="fas fa-bug"></i> Report an Issue</a>
         </div>
       </div>
+
+      <!-- Column 3: citations + privacy -->
+      <div class="space-y-4">
+        <h5 class="text-[11px] uppercase tracking-widest text-gray-500">How to cite</h5>
+        <div class="rounded-xl border border-white/[0.08] bg-white/[0.03] p-4">
+          <div class="flex items-center justify-between gap-2 mb-1.5">
+            <div class="flex items-center gap-2 text-sm font-semibold"><i class="fab fa-github text-accent-cyan"></i> 1. Cite GitHub Repository (Software)</div>
+            <span class="text-[10px] font-mono text-gray-500 whitespace-nowrap">CITATION.cff / Repo</span>
+          </div>
+          <p class="text-xs text-gray-400 mb-3">Using the StarNest web pipeline or source code in your workflow?</p>
+          <div class="grid grid-cols-2 gap-2">
+            <a data-repo-cite href="https://github.com/NIKHILKAUSHIK9/demo_trial.github.io" target="_blank" rel="noopener" class="fc-btn fc-btn-primary">View GitHub Citation <i class="fas fa-arrow-up-right-from-square text-[10px]"></i></a>
+            <button type="button" data-copy="repo" class="fc-btn fc-btn-ghost"><span data-label>Copy Repo BibTeX</span></button>
+          </div>
+        </div>
+        <div class="rounded-xl border border-white/[0.08] bg-white/[0.03] p-4">
+          <div class="flex items-center justify-between gap-2 mb-1.5">
+            <div class="flex items-center gap-2 text-sm font-semibold"><i class="fas fa-scroll text-accent-violet"></i> 2. Cite Research Paper (Study)</div>
+            <span class="text-[10px] font-mono text-gray-500 whitespace-nowrap">Paper / Preprint</span>
+          </div>
+          <p class="text-xs text-gray-400 mb-3">Referencing our photometric &amp; kinematic study of the six open star clusters?</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" data-copy="paper" class="fc-btn fc-btn-primary"><span data-label>Copy Paper BibTeX</span></button>
+            <a data-paper-link href="#" target="_blank" rel="noopener" class="fc-btn fc-btn-ghost">Paper / DOI <i class="fas fa-arrow-up-right-from-square text-[10px]"></i></a>
+          </div>
+          <button type="button" data-open-cite class="mt-3 text-[11px] text-gray-500 hover:text-accent-cyan transition-colors"><i class="fas fa-table-columns mr-1"></i> Show both citations side by side</button>
+        </div>
+        <p class="flex items-start gap-2 text-[11px] text-gray-500 leading-relaxed"><i class="fas fa-shield-halved text-emerald-400 mt-0.5"></i><span>Privacy: uploaded cluster <code class="text-gray-400">.csv</code> catalogues are processed only within your session (in your browser, or in temporary server-session memory when the Python backend is used) and are never permanently stored.</span></p>
+      </div>
+    </div>
+    <div class="border-t border-white/[0.05] py-4 text-center text-[11px] text-gray-600">&copy; 2025&ndash;2026 StarNest research team &middot; Data: ESA Gaia DR3 &middot; Isochrones: PARSEC &middot; Cluster parameters: COCD</div>
+  </footer>
+
+  <!-- ===== Footer variant B: slim status bar (workspace tabs only) ===== -->
+  <footer id="footer-workspace" class="fixed bottom-0 inset-x-0 z-40 h-9 hidden items-center justify-between bg-space-950/95 backdrop-blur-md border-t border-white/[0.06] px-6 text-[11px] text-gray-400">
+    <div class="flex items-center gap-3 min-w-0">
+      <span class="font-mono px-1.5 py-0.5 rounded bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/25">StarNest v1.0.0</span>
+      <span class="truncate">Stage: <span id="footer-stage" class="text-gray-200">Membership</span></span>
+    </div>
+    <div class="flex items-center gap-4">
+      <a data-repo-cite href="https://github.com/NIKHILKAUSHIK9/demo_trial.github.io" target="_blank" rel="noopener" class="hover:text-accent-cyan transition-colors hidden sm:inline">Cite GitHub</a>
+      <button type="button" data-open-cite class="hover:text-accent-cyan transition-colors">Cite Paper (BibTeX)</button>
+      <a data-issues-link href="https://github.com/NIKHILKAUSHIK9/demo_trial.github.io/issues" target="_blank" rel="noopener" class="hover:text-accent-cyan transition-colors hidden sm:inline">Report Bug</a>
+      <span class="flex items-center gap-1.5"><span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span></span> Pipeline Ready</span>
     </div>
   </footer>
 
+  <!-- ===== Citation modal (both BibTeX entries) ===== -->
+  <div id="cite-modal" class="fixed inset-0 z-[300] hidden items-center justify-center p-4 bg-black/70 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="cite-modal-title">
+    <div class="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-white/[0.1] bg-space-900 p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-5">
+        <h3 id="cite-modal-title" class="text-lg font-bold flex items-center gap-2"><i class="fas fa-quote-left text-accent-cyan"></i> Cite StarNest</h3>
+        <button type="button" data-close-cite class="text-gray-400 hover:text-white text-xl leading-none" aria-label="Close">&times;</button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div>
+          <div class="flex items-center justify-between mb-2"><span class="text-sm font-semibold"><i class="fab fa-github text-accent-cyan mr-1.5"></i>Software (GitHub)</span><button type="button" data-copy="repo" class="fc-btn fc-btn-ghost !py-1 !px-3"><span data-label>Copy</span></button></div>
+          <pre id="cite-pre-repo" class="text-[11px] leading-relaxed font-mono text-gray-300 bg-black/30 border border-white/[0.06] rounded-lg p-3 overflow-x-auto whitespace-pre-wrap"></pre>
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-2"><span class="text-sm font-semibold"><i class="fas fa-scroll text-accent-violet mr-1.5"></i>Paper (BibTeX)</span><button type="button" data-copy="paper" class="fc-btn fc-btn-ghost !py-1 !px-3"><span data-label>Copy</span></button></div>
+          <pre id="cite-pre-paper" class="text-[11px] leading-relaxed font-mono text-gray-300 bg-black/30 border border-white/[0.06] rounded-lg p-3 overflow-x-auto whitespace-pre-wrap"></pre>
+          <div class="flex items-center justify-between mt-4 mb-2"><span class="text-sm font-semibold">Paper (\bibitem)</span><button type="button" data-copy="bibitem" class="fc-btn fc-btn-ghost !py-1 !px-3"><span data-label>Copy</span></button></div>
+          <pre id="cite-pre-bibitem" class="text-[11px] leading-relaxed font-mono text-gray-300 bg-black/30 border border-white/[0.06] rounded-lg p-3 overflow-x-auto whitespace-pre-wrap"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="assets/js/app.js"></script>
+  <script src="assets/js/footer.js"></script>
 </body>
 </html>

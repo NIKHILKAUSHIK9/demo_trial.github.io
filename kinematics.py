@@ -1,5 +1,5 @@
 """
-ocmass_kinematics.py -- Stage 4: 3-D cluster map + proper-motion (residual) vectors (no UI code).
+kinematics.py -- Stage 4: 3-D cluster map + proper-motion (residual) vectors (no UI code).
 
 TERMINOLOGY
   Plx / e_Plx       : Gaia parallax and its error (mas). Distance d = 1000 / Plx (pc).
@@ -41,7 +41,7 @@ EPLX_COLUMNS = ('e_Plx', 'e_plx', 'parallax_error', 'plx_error')
 STAR_TYPE_COLORS = {'Main Sequence': '#00FFFF', 'Pre-Main Sequence': '#BA8E23',
                     'White Dwarf': '#000000', 'Red Giant / Supergiant': '#FF0000'}
 MIN_STARS_3D = 3                # minimum stars that must pass the distance filter
-OUT_DIR = './ocmass_output'     # only used by save_* helpers
+OUT_DIR = './starnest_output'     # only used by save_* helpers
 # =================================================================
 
 # Rotation matrix ICRS -> Galactic (Hipparcos/Gaia definition; ESA 1997, Hipparcos Catalogue Vol. 1, Eq. 1.5.11)

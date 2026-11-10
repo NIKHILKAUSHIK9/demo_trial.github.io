@@ -1,5 +1,5 @@
 """
-ocmass_extinction_isochrone.py -- Stage 2: IRSA dust extinction -> PARSEC (CMD 3.8, Gaia DR3 photometry) -> isochrone fit (no UI code).
+extinction_isochrone.py -- Stage 2: IRSA dust extinction -> PARSEC (CMD 3.8, Gaia DR3 photometry) -> isochrone fit (no UI code).
 
 TERMINOLOGY
   E(B-V)        : colour excess from the SFD dust map (IRSA, 'ext SFD mean'). A_V = AV_PER_EBV * E(B-V)  (Schlafly & Finkbeiner 2011: 2.742).
@@ -43,9 +43,9 @@ from matplotlib.figure import Figure
 COL = dict(ra='RA_ICRS', dec='DE_ICRS', g='Gmag', bp='BPmag', rp='RPmag', plx='Plx')
 
 # --- network (change here, or set the environment variable shown) ---
-NET_USE_SYSTEM_PROXY = os.environ.get('OCMASS_NO_PROXY', '0') != '1'   # False: ignore HTTP(S)_PROXY / Windows proxy settings (set OCMASS_NO_PROXY=1)
-NET_PROXY_URL = os.environ.get('OCMASS_PROXY') or None                 # e.g. 'http://proxy.du.ac.in:3128' : force this proxy for IRSA and CMD
-NET_IPV4_ONLY = os.environ.get('OCMASS_IPV4_ONLY', '0') == '1'         # True: never use IPv6 (fixes hanging connections on broken IPv6 routes)
+NET_USE_SYSTEM_PROXY = os.environ.get('STARNEST_NO_PROXY', '0') != '1'   # False: ignore HTTP(S)_PROXY / Windows proxy settings (set STARNEST_NO_PROXY=1)
+NET_PROXY_URL = os.environ.get('STARNEST_PROXY') or None                 # e.g. 'http://proxy.du.ac.in:3128' : force this proxy for IRSA and CMD
+NET_IPV4_ONLY = os.environ.get('STARNEST_IPV4_ONLY', '0') == '1'         # True: never use IPv6 (fixes hanging connections on broken IPv6 routes)
 NET_CONNECT_TIMEOUT_S = 30                                             # TCP connect timeout (a blocked host is reported after ~this x retries)
 
 # --- IRSA dust (E(B-V)) ---
@@ -97,7 +97,7 @@ CMD_BASE_PARAMS = {            # every field of the CMD 3.8 form (defaults of th
 CHECK_DG_RANGE = (0.60, 1.00)  # expected  dG   / A_V
 CHECK_DC_RANGE = (0.25, 0.65)  # expected  d(BP-RP) / A_V
 FIT_NEAR_MAG = 0.2             # a star "fits" when it lies within this many mag of the isochrone in the CMD plane
-OUT_DIR = './ocmass_output'
+OUT_DIR = './starnest_output'
 # =================================================================
 
 
@@ -416,7 +416,7 @@ def validate_parsec(iso: pd.DataFrame, logage: float, mh: float):
 
 def with_provenance(raw: bytes, params: dict, info: dict, note: str = '') -> bytes:
     """Prefix the untouched CMD file with '#' comment lines recording exactly what was requested (still parseable by parse_parsec)."""
-    head = ['# ---- OCMass web app: PARSEC file provenance ----',
+    head = ['# ---- StarNest web app: PARSEC file provenance ----',
             f'# retrieved_utc   : {datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")}',
             f'# service         : CMD {CMD_VERSION}  (https://stev.oapd.inaf.it/cgi-bin/cmd_{CMD_VERSION})',
             f'# photometric sys : Gaia EDR3 = Gaia DR3 photometry, Vega  ({params.get("photsys_file")}, {params.get("photsys_version")})',

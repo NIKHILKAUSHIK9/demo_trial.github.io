@@ -95,14 +95,14 @@
     const API_TIMEOUT_MS = 120000;       // real backend: PARSEC / IRSA calls can be slow
     const API_PROBE_TIMEOUT_MS = window.STARNEST_PROBE_TIMEOUT_MS || 1200;   // decides whether the backend exists (hosts that wake up slowly raise it)
 
-    // OCMass Module Constants (exact match to ocmass_gmm.py, ocmass_extinction_isochrone.py, ocmass_imf.py)
-    const OCMASS_REQUIRED_COLS = ['Plx', 'e_Plx', 'pmRA', 'pmDE', 'e_pmRA', 'e_pmDE', 'Gmag', 'BP-RP', 'RUWE', 'gofAL', 'Nper'];
-    const OCMASS_AV_PER_EBV = 2.742;
-    const OCMASS_AG_AV = 0.789, OCMASS_ABP_AV = 1.002, OCMASS_ARP_AV = 0.589;
-    const OCMASS_BPRP0_RANGE = [-0.8, 5.0];
-    const OCMASS_LOGAGE_FLOOR = 6.6;
-    const OCMASS_MIN_MASSES = 20;
-    const OCMASS_M_MIN_FLOOR = 0.08, OCMASS_M_MAX_CAP = 50.0;
+    // StarNest module constants (exact match to gmm.py, extinction_isochrone.py, imf.py)
+    const STARNEST_REQUIRED_COLS = ['Plx', 'e_Plx', 'pmRA', 'pmDE', 'e_pmRA', 'e_pmDE', 'Gmag', 'BP-RP', 'RUWE', 'gofAL', 'Nper'];
+    const STARNEST_AV_PER_EBV = 2.742;
+    const STARNEST_AG_AV = 0.789, STARNEST_ABP_AV = 1.002, STARNEST_ARP_AV = 0.589;
+    const STARNEST_BPRP0_RANGE = [-0.8, 5.0];
+    const STARNEST_LOGAGE_FLOOR = 6.6;
+    const STARNEST_MIN_MASSES = 20;
+    const STARNEST_M_MIN_FLOOR = 0.08, STARNEST_M_MAX_CAP = 50.0;
 
     function showModuleError(boxId, textId, msg) {
       const box = document.getElementById(boxId);
@@ -118,9 +118,9 @@
     }
 
     function validateColumnsJS(rows) {
-      if (!rows || !rows.length) return OCMASS_REQUIRED_COLS;
+      if (!rows || !rows.length) return STARNEST_REQUIRED_COLS;
       const cols = Object.keys(rows[0]);
-      return OCMASS_REQUIRED_COLS.filter(req => !cols.includes(req));
+      return STARNEST_REQUIRED_COLS.filter(req => !cols.includes(req));
     }
 
     // ===== TEAM PHOTO LOADER =====
@@ -237,7 +237,7 @@
       const plx = rows.map(r => getVal(r, ['Plx', 'parallax', 'plx'])).filter(v => Number.isFinite(v) && v > 0);
       const med = medianOf(plx);
       const dm = Number.isFinite(med) ? 5 * Math.log10(1000 / med) - 5 : 7.66;
-      return enrichPhotometryAndClassify(rows, dm, OCMASS_AV_PER_EBV * uiEbv());
+      return enrichPhotometryAndClassify(rows, dm, STARNEST_AV_PER_EBV * uiEbv());
     }
 
     // ---- CSV parsing: RFC-4180 quotes, auto delimiter (comma / tab / semicolon / whitespace) ----
@@ -339,7 +339,7 @@
       return "Main Sequence";
     }
 
-    function enrichPhotometryAndClassify(rows, distMod = 7.66, av = OCMASS_AV_PER_EBV * uiEbv()) {
+    function enrichPhotometryAndClassify(rows, distMod = 7.66, av = STARNEST_AV_PER_EBV * uiEbv()) {
       return rows.map((r, idx) => {
         const copy = { ...r, _idx: idx };
         let mg = getVal(copy, ['M_G_corr', 'M_G', 'mg_corr']);
@@ -351,9 +351,9 @@
         const bprp = getVal(copy, ['BP-RP', 'bp_rp', 'bprp']);
 
         const extAv = Number.isFinite(av) ? av : 0;
-        const extG = Number.isFinite(ag) ? ag : extAv * OCMASS_AG_AV;
-        const extBP = extAv * OCMASS_ABP_AV;
-        const extRP = extAv * OCMASS_ARP_AV;
+        const extG = Number.isFinite(ag) ? ag : extAv * STARNEST_AG_AV;
+        const extBP = extAv * STARNEST_ABP_AV;
+        const extRP = extAv * STARNEST_ARP_AV;
 
         if (!Number.isFinite(mg) && Number.isFinite(gmag)) mg = gmag - distMod - extG;
         if (!Number.isFinite(bprpCorr)) {
@@ -364,7 +364,7 @@
         copy.bp_rp_corr = bprpCorr;
         copy['bp-rp_corr'] = bprpCorr;
         copy['BP-RP'] = Number.isFinite(bprp) ? bprp : bprpCorr;
-        copy.bprp_corr_ok = Number.isFinite(bprpCorr) && bprpCorr >= OCMASS_BPRP0_RANGE[0] && bprpCorr <= OCMASS_BPRP0_RANGE[1];
+        copy.bprp_corr_ok = Number.isFinite(bprpCorr) && bprpCorr >= STARNEST_BPRP0_RANGE[0] && bprpCorr <= STARNEST_BPRP0_RANGE[1];
         assignDerived(copy, mg, bprpCorr);
         return copy;
       });
@@ -548,10 +548,10 @@
       return { params, resp: fin.resp, ll: fin.ll, converged, iters };
     }
 
-    // GMM_N_INIT / GMM_TOL / GMM_MAX_ITER mirror N_INIT / GMM_TOL / GMM_MAX_ITER in ocmass_gmm.py (tight tol: EM must reach the true optimum or members/non-members shift)
+    // GMM_N_INIT / GMM_TOL / GMM_MAX_ITER mirror N_INIT / GMM_TOL / GMM_MAX_ITER in gmm.py (tight tol: EM must reach the true optimum or members/non-members shift)
     const GMM_N_INIT = 5, GMM_TOL = 1e-6, GMM_MAX_ITER = 1000, GMM_REG = 1e-6;
     const GMM_COLAB_TOL = 1e-3, GMM_COLAB_MAX_ITER = 100;   // sklearn GaussianMixture defaults = what the Colab script uses; 'converged' option uses GMM_TOL / GMM_MAX_ITER
-    const GMM_MIN_STARS_PER_COMPONENT = 5;    // = MIN_COMPONENT_STARS in ocmass_gmm.py. A 3-D covariance needs > 3 points to be full-rank; fewer = collapsed likelihood spike
+    const GMM_MIN_STARS_PER_COMPONENT = 5;    // = MIN_COMPONENT_STARS in gmm.py. A 3-D covariance needs > 3 points to be full-rank; fewer = collapsed likelihood spike
     function fitFullGMM3D(scaled, K, nInit = GMM_N_INIT, maxIter = GMM_MAX_ITER, tol = GMM_TOL, reg = GMM_REG) {
       const N = scaled.length;
       let best = null;
@@ -644,7 +644,7 @@
     // BROWSER-SIDE IRSA DUST + CMD 3.8 CLIENT (no Python backend; direct fetch from this page)
     // Works ONLY if the two servers answer with CORS permission (Access-Control-Allow-Origin). If they do not,
     // the browser blocks the reply and every call below ends in NetBlockedError -> shown in the workflow tracker.
-    // Mirrors ocmass_extinction_isochrone.py (same form fields, same parsing, same checks).
+    // Mirrors extinction_isochrone.py (same form fields, same parsing, same checks).
     // =====================================================================
     const BNET_CFG = {
       IRSA_URL: 'https://irsa.ipac.caltech.edu/cgi-bin/DUST/nph-dust',
@@ -823,7 +823,7 @@
       if (iso.MH && Math.abs(medianOf(iso.MH) - mh) > 0.05) throw new CmdRequestError(`PARSEC returned [M/H] ${medianOf(iso.MH).toFixed(3)}, requested ${mh.toFixed(3)}`);
     }
     function bnetProvenance(raw, params, info) {
-      const head = ['# ---- OCMass web app: PARSEC file provenance ----',
+      const head = ['# ---- StarNest web app: PARSEC file provenance ----',
         `# retrieved_utc   : ${new Date().toISOString().replace('T', ' ').slice(0, 19)}`,
         `# service         : CMD ${BNET_CFG.CMD_VERSION}  (https://stev.oapd.inaf.it/cgi-bin/cmd_${BNET_CFG.CMD_VERSION})`,
         `# photometric sys : Gaia EDR3 = Gaia DR3 photometry, Vega  (${params.photsys_file}, ${params.photsys_version})`,
@@ -917,7 +917,7 @@
         const plxZp = params.plx_zp !== undefined ? params.plx_zp : 0.0;
         const kParam = params.k;
 
-        // Exact apply_quality_cuts from ocmass_gmm.py (NaN rows dropped)
+        // Exact apply_quality_cuts from gmm.py (NaN rows dropped)
         const cleaned = rawRows.filter(r => {
           const ruwe = Number(r.RUWE);
           const epmra = Number(r.e_pmRA);
@@ -1023,7 +1023,7 @@
         const dmCluster = 5.0 * Math.log10(distFromMemPc) - 5.0;
 
         // E(B-V) comes from the Isochrone page input (was hard-coded 0.15 for every cluster)
-        const avUI = OCMASS_AV_PER_EBV * uiEbv();
+        const avUI = STARNEST_AV_PER_EBV * uiEbv();
         members = enrichPhotometryAndClassify(members, dmCluster, avUI);
         nonMembers = enrichPhotometryAndClassify(nonMembers, dmCluster, avUI);
 
@@ -1106,8 +1106,8 @@
           return hitCmd.res;
         }
 
-        if (!(params.age >= OCMASS_LOGAGE_FLOOR)) {
-          throw new Error(`logAge ${params.age} below PARSEC floor ${OCMASS_LOGAGE_FLOOR}`);
+        if (!(params.age >= STARNEST_LOGAGE_FLOOR)) {
+          throw new Error(`logAge ${params.age} below PARSEC floor ${STARNEST_LOGAGE_FLOOR}`);
         }
         const mode = params.ebv_mode || 'center';
         const handling = params.iso_extinction || 'reddened';
@@ -1158,11 +1158,11 @@
           // per-star E(B-V): IRSA cell value > a column carried by the FILE (per_star only) > the typed value
           const fileEbv = getVal(r, ['E_BV', 'Extinction']);
           const rowEbv = irsaVals ? irsaVals[idx] : ((mode === 'per_star' && Number.isFinite(fileEbv)) ? fileEbv : ebvTyped);
-          const rowAv = OCMASS_AV_PER_EBV * rowEbv;
+          const rowAv = STARNEST_AV_PER_EBV * rowEbv;
           copy.E_BV = Number(rowEbv.toFixed(4));
-          copy.A_G = Number((OCMASS_AG_AV * rowAv).toFixed(4));
-          copy.A_BP = Number((OCMASS_ABP_AV * rowAv).toFixed(4));
-          copy.A_RP = Number((OCMASS_ARP_AV * rowAv).toFixed(4));
+          copy.A_G = Number((STARNEST_AG_AV * rowAv).toFixed(4));
+          copy.A_BP = Number((STARNEST_ABP_AV * rowAv).toFixed(4));
+          copy.A_RP = Number((STARNEST_ARP_AV * rowAv).toFixed(4));
 
           const rPlx = getVal(copy, ['Plx', 'parallax', 'plx']) - plxZp;
           const dm = useClusterDm
@@ -1189,7 +1189,7 @@
           // observed plane = where a REDDENED isochrone lives (no extinction removed from the stars)
           copy.M_G_obs = Number.isFinite(g) ? Number((g - dm).toFixed(4)) : NaN;
           copy.bp_rp_obs = (Number.isFinite(bp) && Number.isFinite(rp)) ? Number((bp - rp).toFixed(4)) : (Number.isFinite(bprp) ? bprp : NaN);
-          copy.bprp_corr_ok = copy.bp_rp_corr >= OCMASS_BPRP0_RANGE[0] && copy.bp_rp_corr <= OCMASS_BPRP0_RANGE[1];
+          copy.bprp_corr_ok = copy.bp_rp_corr >= STARNEST_BPRP0_RANGE[0] && copy.bp_rp_corr <= STARNEST_BPRP0_RANGE[1];
           assignDerived(copy, copy.M_G_corr, copy.bp_rp_corr);     // star type + mass re-derived with THIS extinction/DM
           return copy;
         }).filter(r => Number.isFinite(r.M_G_corr) && Number.isFinite(r.bp_rp_corr) && Number.isFinite(r.M_G_obs) && Number.isFinite(r.bp_rp_obs));
@@ -1205,9 +1205,9 @@
         const eList = enriched.map(r => r.E_BV);
         const eMean = eList.reduce((a, v) => a + v, 0) / eList.length;
         const eStd = Math.sqrt(eList.reduce((a, v) => a + (v - eMean) ** 2, 0) / eList.length);
-        const avMean = OCMASS_AV_PER_EBV * eMean;
-        wf.extinction = { E_BV_mean: eMean, E_BV_std: eStd, A_V_mean: avMean, A_G: OCMASS_AG_AV * avMean, A_BP: OCMASS_ABP_AV * avMean,
-                          A_RP: OCMASS_ARP_AV * avMean, AV_PER_EBV: OCMASS_AV_PER_EBV, DM: clusterDm, d_pc: dPc };
+        const avMean = STARNEST_AV_PER_EBV * eMean;
+        wf.extinction = { E_BV_mean: eMean, E_BV_std: eStd, A_V_mean: avMean, A_G: STARNEST_AG_AV * avMean, A_BP: STARNEST_ABP_AV * avMean,
+                          A_RP: STARNEST_ARP_AV * avMean, AV_PER_EBV: STARNEST_AV_PER_EBV, DM: clusterDm, d_pc: dPc };
 
         // ---- step 4: PARSEC from CMD 3.8 (direct browser fetch); the MEAN A_V is forwarded ----
         const avSend = handling === 'reddened' ? Number(avMean.toFixed(3)) : 0.0;
@@ -1269,7 +1269,7 @@
             E_BV_median: medianOf(eList),
             E_BV_mean: eMean,
             E_BV_std: eStd,
-            A_V: Number((OCMASS_AV_PER_EBV * medianOf(eList)).toFixed(4)),
+            A_V: Number((STARNEST_AV_PER_EBV * medianOf(eList)).toFixed(4)),
             A_V_mean: avMean,
             d_pc: Number(dPc.toFixed(1)),
             DM: Number(clusterDm.toFixed(3)),
@@ -1350,8 +1350,8 @@
         if (localStore.cache[cacheKey]) return localStore.cache[cacheKey];
 
         const enriched = getAnalysisRows(params.filename);
-        const mMinSel = Number.isFinite(Number(params.mass_min)) ? Number(params.mass_min) : OCMASS_M_MIN_FLOOR;
-        const mMaxSel = Number.isFinite(Number(params.mass_max)) ? Number(params.mass_max) : OCMASS_M_MAX_CAP;
+        const mMinSel = Number.isFinite(Number(params.mass_min)) ? Number(params.mass_min) : STARNEST_M_MIN_FLOOR;
+        const mMaxSel = Number.isFinite(Number(params.mass_max)) ? Number(params.mass_max) : STARNEST_M_MAX_CAP;
 
         // Masses from L(M) relations are not valid for white dwarfs / evolved giants -> excluded ("MS only" badge)
         const EVOLVED = new Set(['White Dwarf', 'Red Giant / Supergiant']);
@@ -1367,15 +1367,15 @@
           }
         });
 
-        if (allMasses.length < OCMASS_MIN_MASSES) {
-          throw new Error(`Only ${allMasses.length} valid masses; need >= ${OCMASS_MIN_MASSES}.`);
+        if (allMasses.length < STARNEST_MIN_MASSES) {
+          throw new Error(`Only ${allMasses.length} valid masses; need >= ${STARNEST_MIN_MASSES}.`);
         }
 
         const nBins = params.bins || Math.min(15, Math.max(8, Math.ceil(Math.log2(allMasses.length) + 1)));
         const fitMinLogM = params.fit_min_logM !== undefined ? params.fit_min_logM : -0.7;
         const [mMinObs, mMaxObs] = minMax(allMasses);
-        const mLo = Math.max(OCMASS_M_MIN_FLOOR, mMinObs * 0.9);
-        const mHi = Math.min(OCMASS_M_MAX_CAP, mMaxObs * 1.1);
+        const mLo = Math.max(STARNEST_M_MIN_FLOOR, mMinObs * 0.9);
+        const mHi = Math.min(STARNEST_M_MAX_CAP, mMaxObs * 1.1);
         if (mLo >= mHi) throw new Error('Degenerate mass range.');
 
         const logMin = Math.log10(mLo);
@@ -1830,13 +1830,17 @@
       const targetEl = document.getElementById('page-' + targetPageName);
       if (!currentEl || !targetEl) { isTransitioning = false; return; }
 
+      window.scrollTo(0, 0);                        // every page starts at the top of the (global) scroll
+      targetEl.classList.add('is-entering');        // out of flow, full height, while it slides in
       gsap.set(targetEl, { visibility: 'visible', opacity: 1, x: direction * window.innerWidth });
 
       const tl = gsap.timeline({
         onComplete: () => {
           gsap.set(currentEl, { visibility: 'hidden', x: 0, opacity: 0 });
+          currentEl.classList.remove('is-active');
+          targetEl.classList.remove('is-entering');
+          targetEl.classList.add('is-active');      // the visible page now defines the document height
           currentPage = targetPageName;
-          targetEl.scrollTop = 0;
           isTransitioning = false;
           window.dispatchEvent(new Event('resize'));
         }
@@ -1855,6 +1859,31 @@
 
       const targetBtn = document.querySelector(`.nav-btn[data-page="${targetPageName}"]`);
       if (targetBtn) moveNavPill(targetBtn);
+    }
+
+    // Workflow tiles: liquid fill starts where the pointer enters; tap/Enter toggles the details on touch + keyboard
+    function initWorkflowTiles() {
+      document.querySelectorAll('.wf-tile').forEach(tile => {
+        const setOrigin = (e) => {
+          const r = tile.getBoundingClientRect();
+          tile.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+          tile.style.setProperty('--my', (e.clientY - r.top) + 'px');
+        };
+        tile.addEventListener('pointerenter', setOrigin);
+        tile.addEventListener('pointerdown', setOrigin);
+        tile.addEventListener('click', (e) => {
+          if (e.target.closest('.wf-open')) return;                       // the "Open" link navigates instead
+          if (window.matchMedia('(hover: hover)').matches) return;        // desktop: pure hover
+          const open = !tile.classList.contains('is-open');
+          document.querySelectorAll('.wf-tile.is-open').forEach(t => t.classList.remove('is-open'));
+          tile.classList.toggle('is-open', open);
+        });
+        tile.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tile.classList.toggle('is-open'); }
+        });
+        tile.addEventListener('focus', () => { if (tile.matches(':focus-visible')) tile.classList.add('is-open'); });   // keyboard focus only (taps are handled by click)
+        tile.addEventListener('blur', () => tile.classList.remove('is-open'));
+      });
     }
 
     function animateHomeEntrance() {
@@ -1950,7 +1979,7 @@
         }
 
         window.gmmFilteredFileName = 'members_latest.csv';   // raw upload name (rawFileName) is left untouched
-        showToast(`OCMass GMM complete (K=${data.stats.k})! Extracted ${data.stats.members} cluster members.`, 'success');
+        showToast(`StarNest GMM complete (K=${data.stats.k})! Extracted ${data.stats.members} cluster members.`, 'success');
 
         await computeCMDPlot();
         await computeKinematicsPlots();
@@ -2361,7 +2390,7 @@
 
       const ebvMode = document.getElementById('input-ebv-mode').value;
       const ebvInput = parseFloat(document.getElementById('input-ebv').value);
-      document.getElementById('input-av').value = Number.isFinite(ebvInput) ? (OCMASS_AV_PER_EBV * ebvInput).toFixed(3) : '';
+      document.getElementById('input-av').value = Number.isFinite(ebvInput) ? (STARNEST_AV_PER_EBV * ebvInput).toFixed(3) : '';
 
       const progressWrap = document.getElementById('per-star-warning');
       const progressBar = document.getElementById('per-star-progress-bar');
@@ -2379,7 +2408,7 @@
         dist_mod: parseFloat(document.getElementById('input-dist-mod').value) || 7.66,
         age: parseFloat(document.getElementById('input-age').value) || 7.5,
         metallicity: parseFloat(document.getElementById('input-metallicity').value) || 0.0,
-        av: Number.isFinite(ebvInput) ? OCMASS_AV_PER_EBV * ebvInput : 0.41,
+        av: Number.isFinite(ebvInput) ? STARNEST_AV_PER_EBV * ebvInput : 0.41,
         iso_extinction: document.getElementById('input-iso-ext').value,
         allow_network: userClick
       };
@@ -2905,6 +2934,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      initWorkflowTiles();
       loadTeamPhotos();
       const fontPromise = document.fonts ? document.fonts.ready : Promise.resolve();
       fontPromise.then(() => {
@@ -3205,7 +3235,7 @@
       });
       document.getElementById('input-ebv').addEventListener('input', (e) => {
         const v = parseFloat(e.target.value);
-        document.getElementById('input-av').value = Number.isFinite(v) ? (OCMASS_AV_PER_EBV * v).toFixed(3) : '';
+        document.getElementById('input-av').value = Number.isFinite(v) ? (STARNEST_AV_PER_EBV * v).toFixed(3) : '';
       });
       ['input-dist-mod', 'input-age', 'input-metallicity', 'input-ebv', 'input-iso-plxzp', 'input-use-cluster-dm'].forEach(id => {
         const el = document.getElementById(id);

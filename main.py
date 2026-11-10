@@ -1,5 +1,5 @@
 """
-main.py -- FastAPI server that runs the REAL ocmass modules for the StarNest front end.
+main.py -- FastAPI server that runs the REAL StarNest modules for the StarNest front end.
 Run:   pip install -r requirements.txt fastapi uvicorn python-multipart
        uvicorn main:app --host 127.0.0.1 --port 8000
 The front end probes GET /api/health; if it answers, every analysis call goes here (real GMM-BIC, IRSA
@@ -34,10 +34,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-import ocmass_extinction_isochrone as EXT
-import ocmass_gmm as GMM
-import ocmass_imf as IMF
-import ocmass_kinematics as KIN
+import extinction_isochrone as EXT
+import gmm as GMM
+import imf as IMF
+import kinematics as KIN
 
 # ===================== GLOBAL CONFIGURATION =====================
 API_PREFIX = '/api'
@@ -83,7 +83,7 @@ class _SessionState:
 
 STATE = _SessionState()
 
-app = FastAPI(title='StarNest OCMass backend')
+app = FastAPI(title='StarNest backend')
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'], expose_headers=['Content-Disposition'])
 
 
@@ -215,7 +215,7 @@ def platform_health():
 
 @app.get(API_PREFIX + '/health')
 def health():
-    return dict(status='ok', engine='python', modules=['ocmass_gmm', 'ocmass_extinction_isochrone', 'ocmass_kinematics', 'ocmass_imf'])
+    return dict(status='ok', engine='python', modules=['gmm', 'extinction_isochrone', 'kinematics', 'imf'])
 
 
 @app.post(API_PREFIX + '/upload-raw')
@@ -382,7 +382,7 @@ def compute_cmd(p: dict):
 
 @app.post(API_PREFIX + '/compute-kinematics')
 def compute_kinematics(p: dict):
-    """3-D map + PM vectors: the maths lives in ocmass_kinematics.py (this route only reads the request and shapes the reply)."""
+    """3-D map + PM vectors: the maths lives in kinematics.py (this route only reads the request and shapes the reply)."""
     base = analysis_rows(p['filename'])
     try:
         res = KIN.compute_kinematics(base, mode=p.get('kin3d_mode') or KIN.KIN3D_MODE,

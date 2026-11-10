@@ -50,6 +50,6 @@
   };
 
   send('streamlit:componentReady', {});
-  const resize = () => send('streamlit:setFrameHeight', { height: window.STARNEST_FRAME_HEIGHT || 1000 });
+  const resize = () => send('streamlit:setFrameHeight', { height: (window.STARNEST_VIEWPORT_HEIGHT && window.STARNEST_VIEWPORT_HEIGHT()) || window.STARNEST_FRAME_HEIGHT || 1000 });
   resize(); window.addEventListener('resize', resize);
 })();

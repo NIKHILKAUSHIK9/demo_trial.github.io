@@ -1,10 +1,10 @@
-# StarNest / OCMass
+# StarNest
 
-**Photometry and kinematics of young open star clusters with Gaia DR3**: from a raw Gaia cone-search CSV to cluster members, extinction, an isochrone fit, 3-D / proper-motion kinematics and a mass-function comparison, in one web app and as plain Python modules.
+**Photometry and kinematics of open star clusters with Gaia DR3**: from a raw Gaia cone-search CSV to cluster members, extinction, an isochrone fit, 3-D / proper-motion kinematics and a mass-function comparison, in one web app and as plain Python modules.
 
 | | |
 |---|---|
-| Live app | `https://<your-app>.streamlit.app` (replace with your deployment) |
+| Live app | <https://demotrialappio-bcc7ci9wypgzo8pbq4fpbb.streamlit.app/> |
 | Example cluster | UPK 545 (Gaia DR3 cone search, 71 830 sources) |
 | Language / stack | Python 3 (NumPy, pandas, SciPy, scikit-learn, Astropy/astroquery, FastAPI) + HTML/JS front end (Plotly) |
 | Licence | MIT (see `LICENSE`) |
@@ -31,11 +31,11 @@
 
 | Stage | Question answered | Module |
 |---|---|---|
-| 1. Membership | Which stars belong to the cluster? | `ocmass_gmm.py` |
-| 2. Extinction | How much dust lies in front of the cluster? | `ocmass_extinction_isochrone.py` |
-| 3. Isochrone | Which PARSEC isochrone matches the colour-magnitude diagram (CMD)? | `ocmass_extinction_isochrone.py` |
-| 4. Kinematics | What is the 3-D shape of the cluster and how do the stars move on the sky? | `ocmass_kinematics.py` |
-| 5. Mass function | Does the stellar mass distribution follow Salpeter, Kroupa or Chabrier? | `ocmass_imf.py` |
+| 1. Membership | Which stars belong to the cluster? | `gmm.py` |
+| 2. Extinction | How much dust lies in front of the cluster? | `extinction_isochrone.py` |
+| 3. Isochrone | Which PARSEC isochrone matches the colour-magnitude diagram (CMD)? | `extinction_isochrone.py` |
+| 4. Kinematics | What is the 3-D shape of the cluster and how do the stars move on the sky? | `kinematics.py` |
+| 5. Mass function | Does the stellar mass distribution follow Salpeter, Kroupa or Chabrier? | `imf.py` |
 
 `main.py` is the FastAPI back end that connects the modules to the web page (`index.html`, `assets/`). Each module has a **GLOBAL CONFIGURATION** block at the top, so thresholds and defaults can be changed in one place.
 
@@ -80,7 +80,7 @@ The input is a Gaia DR3 CSV exported from VizieR (catalogue `I/355/gaiadr3`) wit
 | `Gmag`, `BPmag`, `RPmag`, `BP-RP` | Gaia magnitudes and colour (Vega) | mag | CMD, extinction |
 | `RUWE`, `gofAL`, `Nper` | Astrometric quality flags | - | quality cut |
 
-### 3.1 Stage 1: quality cuts and GMM membership (`ocmass_gmm.py`)
+### 3.1 Stage 1: quality cuts and GMM membership (`gmm.py`)
 
 **Quality cuts** keep stars with a well-behaved astrometric solution. A star must pass all of them.
 
@@ -110,7 +110,7 @@ The input is a Gaia DR3 CSV exported from VizieR (catalogue `I/355/gaiadr3`) wit
 | `MIN_STARS_PER_COMPONENT` | 10 | Minimum window stars per component | error if `N < 10 x K_max` |
 | MSS | output | Mean Separation Score: mean over features of `(std_nonmember - std_member) / max(std)` | 1 = compact members on a broad field, 0 = no separation |
 
-### 3.2 Stage 2: extinction (`ocmass_extinction_isochrone.py`)
+### 3.2 Stage 2: extinction (`extinction_isochrone.py`)
 
 Dust between us and the cluster dims and reddens the stars. The colour excess E(B-V) is read from the SFD dust map [7] through IRSA (see section 4).
 
@@ -133,7 +133,7 @@ Derived columns:
 | `bp_rp_corr` | `(BP - A_BP) - (RP - A_RP)` (intrinsic colour) |
 | `M_G_obs`, `bp_rp_obs` | `G - DM` and observed `BP - RP` (not de-reddened) |
 
-### 3.3 Stage 3: PARSEC isochrone and fit (`ocmass_extinction_isochrone.py`)
+### 3.3 Stage 3: PARSEC isochrone and fit (`extinction_isochrone.py`)
 
 The isochrone is requested from the CMD web service (PARSEC [10], [11]) in the Gaia EDR3 Vega system, which is the correct system for DR3 photometry (G, BP, RP are identical in EDR3 and DR3) [5].
 
@@ -161,7 +161,7 @@ The isochrone is requested from the CMD web service (PARSEC [10], [11]) in the G
 
 Mass (`MC_Mass`): the isochrone's main-sequence mass is interpolated at each star's `M_G`; outside the isochrone range a piecewise mass-luminosity relation is the fallback (flagged in `MC_Mass_src`). These thresholds are heuristic and not calibrated.
 
-### 3.4 Stage 4: kinematics (`ocmass_kinematics.py`)
+### 3.4 Stage 4: kinematics (`kinematics.py`)
 
 | Parameter | Default | What it is | How it is used |
 |---|---|---|---|
@@ -180,7 +180,7 @@ Outputs: x, y, z, distance and `e_Plx/Plx` per star; the residual proper motion 
 | `angle_to_los_deg` | Angle between the long axis and the line of sight (a needle along the line of sight signals parallax-error smearing) |
 | `expected_err_sd_pc`, `implied_depth_pc` | Spread expected from parallax errors alone, and the remaining true depth `sqrt(observed^2 - expected^2)` |
 
-### 3.5 Stage 5: mass function (`ocmass_imf.py`)
+### 3.5 Stage 5: mass function (`imf.py`)
 
 | Parameter | Default | What it is | How it is used |
 |---|---|---|---|
@@ -203,7 +203,7 @@ Outputs: x, y, z, distance and `e_Plx/Plx` per star; the residual proper motion 
 |---|---|---|
 | `MAX_UPLOAD_MB` | 50 | Largest accepted upload |
 | `SESSION_MAX`, `SESSION_TTL_S` | 20, 6 h | Visitor sessions kept in memory, and idle time before one is dropped; every visitor has a private state |
-| `OCMASS_NO_PROXY`, `OCMASS_PROXY`, `OCMASS_IPV4_ONLY` | environment variables | Network switches for IRSA and CMD calls: ignore the system proxy, force a proxy URL, use IPv4 only |
+| `STARNEST_NO_PROXY`, `STARNEST_PROXY`, `STARNEST_IPV4_ONLY` | environment variables | Network switches for IRSA and CMD calls: ignore the system proxy, force a proxy URL, use IPv4 only |
 
 ---
 
@@ -225,13 +225,14 @@ IRSA and CMD are shared public services: the app caches results, spaces its requ
 
 ```
 main.py                         FastAPI back end: sessions, upload, routes, star types, masses
-ocmass_gmm.py                   Stage 1: quality cuts + GMM membership
-ocmass_extinction_isochrone.py  Stages 2-3: IRSA extinction + PARSEC isochrone + fit quality
-ocmass_kinematics.py            Stage 4: 3-D map + proper-motion vectors
-ocmass_imf.py                   Stage 5: mass function and model comparison
+gmm.py                          Stage 1: quality cuts + GMM membership
+extinction_isochrone.py         Stages 2-3: IRSA extinction + PARSEC isochrone + fit quality
+kinematics.py                   Stage 4: 3-D map + proper-motion vectors
+imf.py                          Stage 5: mass function and model comparison
 index.html                      Web page (markup)
 assets/css/styles.css           Page style
 assets/js/app.js                Page logic, plots, in-browser fallback engine
+assets/js/footer.js             Two-mode footer + citation modal (BibTeX constants)
 assets/js/tailwind-config.js    Tailwind theme
 images/team/                    Team photos (file name = member name)
 streamlit_app/                  Streamlit Community Cloud entry point + bridge
@@ -244,7 +245,7 @@ All modules are free of user-interface code and can be imported on their own.
 ## 6. Using the modules from Python
 
 ```python
-import ocmass_gmm as GMM, ocmass_kinematics as KIN, ocmass_imf as IMF
+import gmm as GMM, kinematics as KIN, imf as IMF
 
 raw   = GMM.load_raw("UPK545.csv")
 clean = GMM.apply_quality_cuts(raw)                                   # section 3.1 cuts
@@ -252,13 +253,13 @@ res   = GMM.run_gmm(clean, distance_lit_pc=341.0, half_width_pc=195.5, optimizer
 print(res.k, res.summary["n_members"])                                # chosen K, members
 
 kin = KIN.compute_kinematics(res.members, mode="precision", max_frac=0.05)
-KIN.save_kinematics(kin, "UPK545", out_dir="ocmass_output")           # CSV files (index=False)
+KIN.save_kinematics(kin, "UPK545", out_dir="starnest_output")           # CSV files (index=False)
 
 imf = IMF.compute_imf(masses)                                         # masses: array in Msun
 print(imf.chi2)                                                       # reduced chi^2 per model
 ```
 
-Stage 2-3 functions (`apply_extinction`, `get_parsec`, `fit_quality`) are in `ocmass_extinction_isochrone.py` and need internet access.
+Stage 2-3 functions (`apply_extinction`, `get_parsec`, `fit_quality`) are in `extinction_isochrone.py` and need internet access.
 
 ## 7. Limitations and assumptions
 
@@ -326,8 +327,8 @@ Use this guide if the hosted app is unavailable or too slow. "Offline" here mean
 **Linux / macOS**
 
 ```bash
-git clone https://github.com/<your-user>/<your-repo>.git
-cd <your-repo>
+git clone https://github.com/NIKHILKAUSHIK9/demo_trial.github.io.git
+cd demo_trial.github.io
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -336,8 +337,8 @@ pip install -r requirements.txt
 **Windows (PowerShell)**
 
 ```powershell
-git clone https://github.com/<your-user>/<your-repo>.git
-cd <your-repo>
+git clone https://github.com/NIKHILKAUSHIK9/demo_trial.github.io.git
+cd demo_trial.github.io
 py -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
@@ -383,11 +384,11 @@ The workflow tracker on the Isochrone tab shows each network step (IRSA, PARSEC)
 | `Address already in use` | Port 8000 is taken | use `--port 8010` |
 | Badge says "in-browser" | Back end not reachable | check the terminal for errors; open `http://localhost:8000/api/health` (should return JSON) |
 | Page looks unstyled or plots are missing | No internet for the CDN libraries | connect to the internet and reload |
-| IRSA or PARSEC step red, "connect timeout" | Network, proxy or IPv6 problem | set an environment variable before starting: `OCMASS_NO_PROXY=1` (ignore the system proxy), `OCMASS_PROXY=http://host:port` (force a proxy) or `OCMASS_IPV4_ONLY=1`; on Windows PowerShell use `$env:OCMASS_NO_PROXY="1"` |
+| IRSA or PARSEC step red, "connect timeout" | Network, proxy or IPv6 problem | set an environment variable before starting: `STARNEST_NO_PROXY=1` (ignore the system proxy), `STARNEST_PROXY=http://host:port` (force a proxy) or `STARNEST_IPV4_ONLY=1`; on Windows PowerShell use `$env:STARNEST_NO_PROXY="1"` |
 | PARSEC error "did not return an output file" | CMD server busy or rejected the parameters | read the message in the tracker; check `logAge` (6.6 to 10.13) and `[M/H]`; retry after a minute |
 | "Missing required columns" | The CSV lacks columns from section 3.0 | export all of them from VizieR |
 | Upload refused | File larger than 50 MB | raise `MAX_UPLOAD_MB` in `main.py` |
 
 ### 11.7 Output files
 
-Downloads from the page are saved by your browser. The Python helpers (`save_members`, `save_kinematics`, `save_imf`, `save_outputs`) write to `./ocmass_output/` (set by `OUT_DIR` in each module), always without the row index.
+Downloads from the page are saved by your browser. The Python helpers (`save_members`, `save_kinematics`, `save_imf`, `save_outputs`) write to `./starnest_output/` (set by `OUT_DIR` in each module), always without the row index.

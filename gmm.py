@@ -1,5 +1,5 @@
 """
-ocmass_gmm.py -- Stage 1: Gaia quality cuts + GMM membership (web-app-ready, no UI code).
+gmm.py -- Stage 1: Gaia quality cuts + GMM membership (web-app-ready, no UI code).
 
 TERMINOLOGY
   RUWE / gofAL / Nper : Gaia astrometric quality flags (lower RUWE/gofAL = cleaner single-star fit).
@@ -47,7 +47,7 @@ MIN_STARS_PER_COMPONENT = 10
 MIN_COMPONENT_STARS = 5      # a K whose fitted component holds fewer stars is a collapsed (singular) likelihood spike -> excluded from BIC choice
 REQUIRED_COLUMNS = [COL[k] for k in ('plx', 'e_plx', 'pmra', 'pmde', 'e_pmra', 'e_pmde',
                                      'gmag', 'color', 'ruwe', 'gofal', 'nper')]
-OUT_DIR = './ocmass_output'  # only used by save_* helpers
+OUT_DIR = './starnest_output'  # only used by save_* helpers
 # =================================================================
 
 

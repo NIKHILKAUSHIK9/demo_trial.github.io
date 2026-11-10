@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
-title: "StarNest / OCMass: photometry and kinematics of young open clusters with Gaia DR3"
+title: "StarNest: photometry and kinematics of open star clusters with Gaia DR3"
 type: software
 version: 1.0.0
 authors:
@@ -15,5 +15,6 @@ authors:
     given-names: Neelam
   - family-names: Kundu
     given-names: Richa
-repository-code: "https://github.com/<your-user>/<your-repo>"
+repository-code: "https://github.com/NIKHILKAUSHIK9/demo_trial.github.io"
+url: "https://demotrialappio-bcc7ci9wypgzo8pbq4fpbb.streamlit.app/"
 license: MIT

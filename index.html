@@ -14,7 +14,9 @@
   <script>
     /* When embedded (Streamlit), make the frame as tall as the browser window so the page's own (global) scroll is the only
        scrollbar and the fixed navbar stays pinned. Needs same-origin access to the parent; silently skipped otherwise. */
-    window.STARNEST_VIEWPORT_HEIGHT = function () { try { return window.parent.innerHeight || 0; } catch (e) { return 0; } };
+    window.STARNEST_VIEWPORT_HEIGHT = function () {   /* window height minus the frame's own offset in the host page (Streamlit adds ~16px above it) */
+      try { var f = window.frameElement, top = f ? Math.max(0, f.getBoundingClientRect().top + (window.parent.scrollY || 0)) : 0;
+            return Math.max(300, (window.parent.innerHeight || 0) - top); } catch (e) { return 0; } };
     (function () {
       function fit() { try { var h = window.STARNEST_VIEWPORT_HEIGHT(); if (h && window.frameElement && !window.STARNEST_BRIDGE) window.frameElement.style.height = h + 'px'; } catch (e) {} }
       if (window.self !== window.top) {

@@ -17,7 +17,7 @@ import streamlit.components.v1 as components
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 st.set_page_config(page_title=PAGE_TITLE, layout="wide", initial_sidebar_state="collapsed")
-st.markdown("<style>header,footer{visibility:hidden;height:0} .block-container{padding:0!important;max-width:100%!important}</style>", unsafe_allow_html=True)
+st.markdown("<style>header,footer{visibility:hidden;height:0} .block-container{padding:0!important;max-width:100%!important} .stApp,[data-testid=stAppViewContainer],[data-testid=stMain]{background:#050810!important}</style>", unsafe_allow_html=True)
 
 
 def _secret() -> str:

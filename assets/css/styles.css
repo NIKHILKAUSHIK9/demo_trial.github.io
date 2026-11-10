@@ -243,3 +243,7 @@ body.ws-footer #engine-badge { bottom: 2.9rem !important; }      /* keep the eng
 /* ===== Embedded (iframe) mode: the iframe cannot scroll its document, so <body> becomes the single scroller ===== */
 html.embedded { height: 100%; overflow: hidden; }
 html.embedded body { height: 100%; overflow-x: hidden; overflow-y: auto; }
+
+/* Flex-column body (embedded mode gives it a fixed height): never let the page or the footers shrink into each other */
+#pages-container { flex: 1 0 auto; }
+#footer-home { flex-shrink: 0; }

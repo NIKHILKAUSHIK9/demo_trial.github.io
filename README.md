@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Live app | <https://demotrialappio-bcc7ci9wypgzo8pbq4fpbb.streamlit.app/> |
+| Live app | <https://starnest.streamlit.app/> |
 | Example cluster | UPK 545 (Gaia DR3 cone search, 71 830 sources) |
 | Language / stack | Python 3 (NumPy, pandas, SciPy, scikit-learn, Astropy/astroquery, FastAPI) + HTML/JS front end (Plotly) |
 | Licence | MIT (see `LICENSE`) |
@@ -110,6 +110,22 @@ The input is a Gaia DR3 CSV exported from VizieR (catalogue `I/355/gaiadr3`) wit
 | `MIN_STARS_PER_COMPONENT` | 10 | Minimum window stars per component | error if `N < 10 x K_max` |
 | MSS | output | Mean Separation Score: mean over features of `(std_nonmember - std_member) / max(std)` | 1 = compact members on a broad field, 0 = no separation |
 
+Stage 1 applies **no** extinction: the member table carries only observed-plane columns (`M_G_obs`, `bp_rp_obs`) and a provisional `Star_Type` (`Star_Type_plane` = observed). `M_G_corr`, `bp_rp_corr` and `MC_Mass` appear after stage 2, together with `E_BV_used` (the E(B-V) actually applied) and `Mass_quality` (`ok` / `approx`). An explicit `ebv_ui` in the stage-1 request is still honoured and stamped in `E_BV_used`.
+
+### New analysis endpoints (additive; existing routes are unchanged)
+
+| Endpoint | Module | What it returns |
+|---|---|---|
+| `POST /api/gmm-diagnostics` | `gmm.py` | HDBSCAN cross-check (Jaccard overlap with the GMM members) and per-star PMemb scatter from `N_RESAMPLE` draws within the Gaia errors |
+| `POST /api/compute-binaries` | `binaries.py` | `MC_Mass`, `MC_CompMass`, `is_binary`, `q` per star (nearest synthetic system in G, BP, RP, `N_MC` repeats) and the cluster mass `M_T`. `is_binary` is a probability under the assumed `F_BIN`, not a detection |
+| `POST /api/compute-velocities` | `kinematics.py` | `v = 4.74 mu / plx`, perspective-corrected (Gaia RV), median `v_out` / `v_az` with bootstrap errors, ML `sigma_1D` with an outlier mixture chosen by delta-BIC, virial sigma |
+| `POST /api/compute-dynamics` | `dynamics.py` | Mass-segregation ratio sweep, tidal radius, relaxation time, optional galpy orbit and tail check |
+| `POST /api/fit-isochrone-likelihood` | `extinction_isochrone.py` | Likelihood fit of A_V, DM, equal-mass-binary fraction and outlier fraction; `dust_source` = `sfd` / `bayestar` / `free` |
+| `GET /api/hunt-reffert?name=` | `gmm.py` | Optional literature prefill; never applied automatically |
+
+`/api/run-gmm` also accepts optional `cluster_rule` (`smallest_det` or `closest_to_literature`, with `lit_pm` and `lit_plx`).
+Everything that needs an isochrone (binaries, dynamics, isochrone fit) requires the "Apply Extinction & Fetch PARSEC" step first.
+
 ### 3.2 Stage 2: extinction (`extinction_isochrone.py`)
 
 Dust between us and the cluster dims and reddens the stars. The colour excess E(B-V) is read from the SFD dust map [7] through IRSA (see section 4).
@@ -185,19 +201,22 @@ Outputs: x, y, z, distance and `e_Plx/Plx` per star; the residual proper motion 
 | Parameter | Default | What it is | How it is used |
 |---|---|---|---|
 | `mass_min`, `mass_max` (`M_MIN_FLOOR`, `M_MAX_CAP`) | 0.08, 50 Msun | Mass range accepted | masses outside are dropped |
-| `include_companions` | off | Add companion masses (`MC_CompMass`) to the sample | optional |
+| `include_companions` | off | Add companion masses (`MC_CompMass`) to the sample. The box is unchecked by default: no module produces `MC_CompMass` yet | needs your own `MC_CompMass` column |
+| `include_approx_ml` (`INCLUDE_APPROX_ML`) | off | Masses flagged `MC_Mass_src = approx_ML` (crude luminosity fallback, `Mass_quality = approx`) are excluded from the fit unless you opt in | quality gate |
+| `method` (`METHOD`) | `mle` | `mle`: truncated power-law maximum likelihood on [m_min, m_max], Gamma = 1 - alpha, sigma from `N_BOOT` = 1000 seeded bootstrap resamples. `binned`: the old Poisson-weighted line fit | slope and error |
 | `N_BINS` (`bins`) | auto | Number of log-mass bins; auto = `min(15, max(8, ceil(log2 N + 1)))` | equal-width bins in log10 M |
-| `FIT_MIN_LOGM` (`fit_min_logM`) | -0.7 (about 0.2 Msun) | Completeness limit: bins below it are shown (open markers) but not fitted or used for scaling | **do not tune it to favour a model** (circular) |
+| `COMPLETE_FRAC` (`gmm.py`) | 0.9 | Retained fraction (quality-cut survivors / raw stars in the distance window) that still counts as complete. `G_lim` = faintest G reached before the fraction first drops below it; converted to a mass with `m_min = interp(G_lim - DM - A_G, M_G, Mass)` on the A_V = 0 isochrone | **measured** completeness limit (needs stage 1 + a fetched isochrone) |
+| `FIT_MIN_LOGM` (`fit_min_logM`) | -0.7 (about 0.2 Msun) | Fallback completeness limit, used only when no measured limit exists. Sending `fit_min_logM` in the request (or moving the slider) overrides the measured value | bins below the limit are shown (open markers) but not fitted. **Do not tune it to favour a model** (circular) |
 | `MIN_MASSES` | 20 | Minimum stars | otherwise an error |
 | `dN/dlogM` | formula | Stars per dex of mass, `count / bin_width`; error `sqrt(count) / bin_width` (Poisson) | observed points |
 | Models | fixed | Salpeter [15]: slope `1 - alpha` with `alpha = 2.35`. Kroupa [15]: broken power law (alpha 0.3 / 1.3 / 2.3, breaks 0.08 and 0.5 Msun). Chabrier [15]: log-normal below 1 Msun (`m_c = 0.08`, `sigma = 0.69` dex), power law above | compared with the data |
 | Scaling | formula | Each model is scaled so its integral over the complete range equals the observed count there | no free parameter |
-| Reduced chi^2 | formula | `sum(((obs - model) / sigma)^2) / (n_bins - 1)` over complete bins | compare models **relatively** |
-| Slope fit | formula | Poisson-weighted line fit in log-log over complete bins; the Salpeter slope is -1.35 | reported with error and R^2 |
-| `MF_LABEL` | Initial Mass Function (IMF) | Heading and plot title of the mass-function page. For clusters older than about 10 Myr, dynamical and stellar evolution can modify the observed mass function | label |
-| `COMPLETENESS_G50`, `COMPLETENESS_W` | 17.2, 0.65 | Illustrative logistic completeness curve of Gaia; **an assumption**, flagged as such | display only |
+| Reduced chi^2 / Cash | formula | Model counts are integrated over each bin. `sum((obs - model)^2 / obs) / (n_bins - 1)` when every complete bin holds >= 5 stars, otherwise the Cash statistic `2 sum(mu - n + n ln(n / mu))` / (n_bins - 1) | compare models **relatively** |
+| Slope fit | formula | `mle` (default): see `method` above; the binned fit is always reported alongside (binned R^2). The Salpeter slope is -1.35 | reported with error |
+| `MF_LABEL_INITIAL`, `MF_LABEL_PRESENT`, `IMF_LOGAGE_SPLIT` | IMF / Present-Day Mass Function, 7.5 | Heading and plot title follow the age: log(age/yr) <= 7.5 -> "Initial Mass Function (IMF)", above -> "Present-Day Mass Function" (stellar evolution and dynamics have modified the observed mass function) | label |
+| `COMPLETENESS_G50`, `COMPLETENESS_W` | 17.2, 0.65 | Illustrative logistic completeness curve; **an assumption**, shown (flagged) only when no measured curve exists | display only |
 
-### 3.6 Web-service and session settings (`main.py`)
+### 3.6 Web-service and session settings (`starnest/api.py`, entry point `main.py`)
 
 | Parameter | Default | Meaning |
 |---|---|---|
@@ -224,20 +243,33 @@ IRSA and CMD are shared public services: the app caches results, spaces its requ
 ## 5. Repository layout
 
 ```
-main.py                         FastAPI back end: sessions, upload, routes, star types, masses
-gmm.py                          Stage 1: quality cuts + GMM membership
-extinction_isochrone.py         Stages 2-3: IRSA extinction + PARSEC isochrone + fit quality
-kinematics.py                   Stage 4: 3-D map + proper-motion vectors
-imf.py                          Stage 5: mass function and model comparison
+starnest/                       Python package (pyproject.toml): every module below lives here
+  api.py                          FastAPI back end: sessions (locked), upload, routes, star types, masses
+  schemas.py                      Pydantic request models (HTTP 400 naming the bad fields)
+  gmm.py                          Stage 1: quality cuts + GMM membership (+ reliability diagnostics)
+  extinction_isochrone.py         Stages 2-3: IRSA extinction + PARSEC isochrone + fit quality + likelihood fit
+  parsec_grid.py                  Local PARSEC grid: read, bilinear interpolation, A_V shift
+  build_grid.py                   One-off download of that grid from CMD 3.8 (python build_grid.py)
+  kinematics.py                   Stage 4: 3-D map, proper-motion vectors, velocities
+  imf.py                          Stage 5: mass function and model comparison
+  binaries.py, dynamics.py        Binary-aware masses; mass segregation, tidal radius, relaxation time, orbit
+  cli.py, report.py               Batch runner (python -m starnest run config.yaml); figure export and one-page report
+main.py, gmm.py, imf.py, ...    Thin compatibility shims: `import gmm` / `uvicorn main:app` still work (same module objects)
 index.html                      Web page (markup)
 assets/css/styles.css           Page style
 assets/js/app.js                Page logic, plots, in-browser fallback engine
+assets/js/panels.js             Python-backend-only panels (reliability, cluster rule, likelihood fit, velocities, binaries, dynamics)
 assets/js/footer.js             Two-mode footer + citation modal (BibTeX constants)
 assets/js/tailwind-config.js    Tailwind theme
 images/team/                    Team photos (file name = member name)
 streamlit_app/                  Streamlit Community Cloud entry point + bridge
-requirements.txt                Python packages for the back end
-CITATION.cff, LICENSE           Citation metadata and MIT licence
+tests/                          pytest suite (runs offline)
+examples/                       Batch config, literature table template and verify.py (section 12.4)
+.github/workflows/ci.yml        pytest + ruff on every push
+pyproject.toml                  Package metadata, extras (api, orbit, dust, dev), ruff / pytest settings
+requirements.txt                Packages for the back end
+CITATION.cff, .zenodo.json      Citation metadata (GitHub "Cite this repository") and Zenodo archive metadata
+LICENSE                         MIT licence
 ```
 
 All modules are free of user-interface code and can be imported on their own.
@@ -266,8 +298,9 @@ Stage 2-3 functions (`apply_extinction`, `get_parsec`, `fit_quality`) are in `ex
 - The membership is a three-dimensional Gaussian mixture; with a wide distance window the member list can contain field stars. Always inspect the distance distribution of the members.
 - `ext SFD mean` is the total dust along the line of sight, so for a nearby cluster the extinction is an upper limit.
 - The Gaia extinction ratios (0.789, 1.002, 0.589) are fixed and independent of stellar colour.
-- Star-type rules and the completeness curve are heuristics; the mass-function limit `FIT_MIN_LOGM` is not derived from the data.
-- Masses come from a single-star isochrone: unresolved binaries are not modelled.
+- Star-type rules are heuristics. The mass-function completeness limit is measured from the fraction of stars that survive the quality cuts versus G (`COMPLETE_FRAC`); `FIT_MIN_LOGM` (-0.7) is only the fallback when no measured limit exists. That fraction counts losses to the quality cuts, not Gaia's intrinsic incompleteness (crowding, scanning law).
+- The mass function endpoint (`/compute-imf`) uses `MC_Mass` from `derive_columns`: a single-star main-sequence interpolation on the isochrone, so unresolved binaries are not modelled there and the masses depend on the age you set. The binary-aware masses and total cluster mass (`binaries.py`) are a separate endpoint and are not fed back into the mass-function slope.
+- `binaries.py` assumes a fixed synthetic binary fraction `F_BIN` = 0.5 with companions drawn from U(0, M_primary), injects no photometric errors into the synthetic cluster, and uses the assumed `F_BIN` (not the fraction measured from the observed stars) in `M_T = M_obs + M_unseen (1 + F_bin q) + M_WD`. The unseen mass is a single power law extrapolated to 0.09 Msun, so `M_T` carries a large systematic error.
 - Results depend on the Gaia zero-point (`PLX_ZP`); the default is 0.
 
 ## 8. Team
@@ -283,7 +316,27 @@ Stage 2-3 functions (`apply_extinction`, `get_parsec`, `fit_quality`) are in `ex
 
 ## 9. How to cite
 
-Use `CITATION.cff` (GitHub shows a "Cite this repository" button), and cite the method this pipeline builds on [13] together with the data and model papers of the stages you use (section 10).
+**Software.** Use `CITATION.cff` (GitHub shows a "Cite this repository" button). A Zenodo DOI is added to it after the first archived release (`.zenodo.json` holds the Zenodo metadata).
+
+**Paper.** Our photometric and kinematic study of six open clusters (Haffner 14, Melotte 111, NGC 2910, Ruprecht 147, UBC 52, UPK 545) is in preparation and has no journal reference or DOI yet. It is listed under `references` in `CITATION.cff` as an unpublished working paper and is not the preferred citation. When it is published, move it to `preferred-citation`.
+
+**Data and models.** Cite the data and model papers of the stages you use (section 10): Gaia [1-5], PARSEC [10-12], the dust map [7-8] and the cluster reference COCD [20].
+
+### Relation to Almeida et al. (2023)
+
+The binary-aware mass method (`binaries.py`) is **inspired by** Almeida, Monteiro & Dias (2023, MNRAS 525, 2315; [13]) and shares its core idea: a synthetic cluster (10 000 stars, Chabrier IMF, 50 % binaries, companion mass uniform in 0 to M_primary) is matched star by star to the observed stars by the nearest Euclidean distance in (G, BP, RP), repeated many times, with the median as the mass and the standard deviation as the error. **StarNest is not a strict replication.** What differs, as implemented:
+
+| Step | Almeida et al. 2023 | StarNest |
+|---|---|---|
+| Cluster parameters | Age, distance, extinction and [Fe/H] taken from the Dias et al. 2021 catalogue, updated with Gaia eDR3 | Membership by the GMM of this app; E(B-V) from the IRSA dust map; age from the user (or the likelihood fit) |
+| Synthetic cluster | Gaia photometric errors are added to the synthetic stars | No photometric errors are added |
+| Binary fraction in `M_T` | Measured from the observed stars | The assumed input `F_BIN` (0.5) |
+| Present-day mass function | Two-part segmented line fitted to a Sturges-binned histogram | Truncated power-law maximum likelihood above a measured completeness limit (one slope, bootstrap error); the binned fit is kept for comparison |
+| Cluster mass | Two variants (integrated mass function; detailed, with separate single / primary / secondary mass functions); flat 20 % error | One formula with a single power-law extrapolation; no separate primary / secondary mass functions; error is not propagated |
+| White-dwarf mass | Cummings et al. 2018 [21] relation for progenitors of 0.85 to 7.50 Msun | Cummings et al. 2018 [21] piecewise relation coded for 0.87 to 8.2 Msun |
+| Mass segregation | Ratio of mean radii of stars above and below 1 Msun, plus a Kolmogorov-Smirnov test | Minimum-spanning-tree ratio Lambda_MSR (Allison et al. 2009) for the N most massive stars |
+
+Results from StarNest are therefore not expected to reproduce numbers published with the OCMass app, and should not be presented as such.
 
 ## 10. References
 
@@ -299,13 +352,15 @@ Use `CITATION.cff` (GitHub shows a "Cite this repository" button), and cite the 
 10. Bressan A. et al., 2012, MNRAS 427, 127 (PARSEC).
 11. Chen Y. et al., 2014, MNRAS 444, 2525; Tang J. et al., 2014, MNRAS 445, 4287; Chen Y. et al., 2015, MNRAS 452, 1068; Marigo P. et al., 2017, ApJ 835, 77 (PARSEC extensions).
 12. Chen Y. et al., 2019, A&A 632, A105 (YBC bolometric corrections).
-13. Almeida A., Monteiro H., Dias W. S., 2023, MNRAS (arXiv:2307.15182), "Revisiting the mass of open clusters with Gaia data" (the OCMass method and web app, https://ocmass.streamlit.app).
+13. Almeida A., Monteiro H., Dias W. S., 2023, MNRAS 525, 2315 (arXiv:2307.15182), "Revisiting the mass of open clusters with Gaia data" (the OCMass method and web app, https://ocmass.streamlit.app). StarNest is inspired by, not a replication of, this method (section 9).
 14. Dempster A. P., Laird N. M., Rubin D. B., 1977, JRSS B 39, 1 (EM algorithm); Schwarz G., 1978, Ann. Statist. 6, 461 (BIC); Pedregosa F. et al., 2011, JMLR 12, 2825 (scikit-learn).
 15. Salpeter E. E., 1955, ApJ 121, 161; Kroupa P., 2001, MNRAS 322, 231; Chabrier G., 2003, PASP 115, 763 (initial mass functions).
 16. ESA, 1997, The Hipparcos and Tycho Catalogues, ESA SP-1200 (ICRS to Galactic rotation matrix).
 17. Bohlin R. C., Hubeny I., Rauch T., 2020, AJ 160, 21 (CALSPEC / Vega reference spectrum).
 18. Astropy Collaboration, 2022, ApJ 935, 167; Ginsburg A. et al., 2019, AJ 157, 98 (astroquery).
 19. Sim G. et al., 2019, J. Korean Astron. Soc. 52, 145 (the UPK cluster catalogue; source of the example cluster).
+20. Kharchenko N. V., Piskunov A. E., Roser S., Schilbach E., Scholz R.-D., 2005, A&A 438, 1163 (COCD, the Catalogue of Open Cluster Data; the "Cluster parameters: COCD" label in the app footer). Note that COCD (2005) predates the UPK and UBC cluster discoveries, so it cannot be the source of parameters for those clusters.
+21. Cummings J. D., Kalirai J. S., Tremblay P.-E., Ramirez-Ruiz E., Choi J., 2018, ApJ 866, 21 (initial-final mass relation).
 
 ---
 
@@ -327,8 +382,8 @@ Use this guide if the hosted app is unavailable or too slow. "Offline" here mean
 **Linux / macOS**
 
 ```bash
-git clone https://github.com/NIKHILKAUSHIK9/demo_trial.github.io.git
-cd demo_trial.github.io
+git clone https://github.com/NIKHILKAUSHIK9/StarNest.git
+cd StarNest
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -337,8 +392,8 @@ pip install -r requirements.txt
 **Windows (PowerShell)**
 
 ```powershell
-git clone https://github.com/NIKHILKAUSHIK9/demo_trial.github.io.git
-cd demo_trial.github.io
+git clone https://github.com/NIKHILKAUSHIK9/StarNest.git
+cd StarNest
 py -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
@@ -392,3 +447,51 @@ The workflow tracker on the Isochrone tab shows each network step (IRSA, PARSEC)
 ### 11.7 Output files
 
 Downloads from the page are saved by your browser. The Python helpers (`save_members`, `save_kinematics`, `save_imf`, `save_outputs`) write to `./starnest_output/` (set by `OUT_DIR` in each module), always without the row index.
+
+## 12. Local PARSEC grid, batch runs and tests (Phase 2)
+
+### 12.1 Local PARSEC grid (no CMD request at run time)
+
+```
+python build_grid.py            # once, needs internet: 11 CMD requests (+3 checks), resumable with --resume
+```
+
+Writes `data/parsec_grid.parquet`: logAge 6.6-10.1 (step 0.05) x [M/H] -0.5..+0.5 (step 0.1), A_V = 0, Gaia EDR3 (= DR3) Vega system. `get_parsec()` then blends the 4 surrounding isochrones bilinearly (per evolutionary phase, equal normalised arc length in the HR diagram) and applies A_V analytically with the A_band/A_V coefficients **measured from CMD at build time** (stored in the file). The reddening self-check is kept, but for a grid isochrone it only tests that the shift lands in the expected range: it is not independent. The build also compares the interpolation with three off-grid CMD isochrones and stores the errors in the file (`interp_check`).
+
+| Setting | Values | Effect |
+|---|---|---|
+| `STARNEST_PARSEC_SOURCE` | `auto` (default), `grid`, `cmd` | `auto`: grid if it covers (logAge, [M/H]), else CMD; `grid`: never contact CMD; `cmd`: ignore the grid |
+| `STARNEST_PARSEC_GRID` | path | grid file (default `data/parsec_grid.parquet`) |
+| `STARNEST_ALLOW_MOCK_GRID` | `1` | tests only: a grid whose metadata says `source: MOCK` is refused otherwise |
+
+`.gitignore` keeps `data/` out of the repository except `data/parsec_grid.parquet`, so you can commit the finished grid (needed if the Streamlit app should not call CMD).
+
+### 12.2 Batch runs
+
+```
+pip install -e ".[api]"
+python -m starnest run config.yaml [--out DIR] [--only NAME ...]
+```
+
+`config.yaml` has `output_dir`, `steps`, `defaults` (one dict per step: gmm, cmd, imf, binaries, velocities, dynamics, isofit) and `clusters` (name, csv, optional per-step overrides). See `examples/config.example.yaml`. Per cluster it writes the member / extinction / isochrone / IMF / binary CSVs (`index=False`), PDF + PNG figures and `<name>_report.pdf` (one A4 page, warnings included). Per run it writes `summary.csv` (N, d, E(B-V), logAge, Gamma, sigma_Gamma, MSR, v_out, sigma_1D plus status, isochrone source, warnings) and `run_manifest.json` (parameters, package versions, SHA-256 of every input and of the grid). The CLI calls the same FastAPI app in-process, so its numbers are the web page's numbers. Exit code 0 = all ok, 1 = a cluster or step failed (others still written), 2 = config error.
+
+### 12.3 Tests and style
+
+```
+pip install -e ".[api]" pytest ruff
+pytest -q          # offline; galpy tests skip when galpy is absent
+ruff check .
+```
+
+GitHub Actions (`.github/workflows/ci.yml`) runs both on every push.
+
+### 12.4 Examples and cross-verification against the literature
+
+`examples/` holds the batch config template, a literature-table template and `verify.py`. No expected outputs are committed: age, E(B-V), masses and the mass-function slope depend on the isochrone, so they are only meaningful when produced with the real PARSEC grid (section 12.1) on your machine. See `examples/README.md` for the run order.
+
+```
+python -m starnest run my_config.yaml --out starnest_output
+python examples/verify.py starnest_output/summary.csv my_literature_table.csv
+```
+
+`verify.py` compares your run with a literature table **you** supply (it never uses StarNest's own earlier output as the reference), using tolerances fixed in the `GLOBAL CONFIGURATION` block at the top of the script; it exits 1 if any checked value is outside its tolerance or missing.

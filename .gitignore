@@ -11,7 +11,8 @@ starnest_output/
 *_extinction_corrected.csv
 
 # your own data (Gaia query results etc.) - add what you want to share explicitly
-data/
+data/*
+!data/parsec_grid.parquet
 *.npy
 
 # editor / OS

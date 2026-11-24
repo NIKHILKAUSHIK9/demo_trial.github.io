@@ -2,13 +2,14 @@
    Self-contained: it only READS the page state (it never edits app.js). */
 
 // ======================= GLOBAL CONFIGURATION =======================
-const GITHUB_REPO_URL   = 'https://github.com/NIKHILKAUSHIK9/demo_trial.github.io';
+const GITHUB_REPO_URL   = 'https://github.com/NIKHILKAUSHIK9/StarNest';
 const GITHUB_ISSUES_URL = GITHUB_REPO_URL + '/issues';
-const PAPER_DOI_URL     = '#';              // set to the preprint / DOI link when available ('#' = button shows "coming soon")
+const PAPER_DOI_URL     = '';               // preprint / DOI link; empty = the paper is unpublished and the "Paper / DOI" button is hidden
 const COPIED_MS         = 2000;             // how long the "Copied!" state stays
 const WORKSPACE_PAGES   = { membership: 'Membership', isochrone: 'Isochrone', kinematics: 'Kinematics', imf: 'IMF' };
 
-// TODO(NK): the supplied text ended at "author = {Panwar, Neel" - author order, venue and DOI below are placeholders; edit before release.
+// Software authors / title: keep identical to CITATION.cff and .zenodo.json. The paper is unpublished, so it is an @unpublished entry with a
+// note and no journal, volume or DOI; its title and author order must match CITATION.cff `references` (tests/test_phase3.py enforces both).
 const BIBTEX_REPO = `@software{starnest_github_2026,
   author       = {Kaushik, Nikhil and Basur, Pryanshu and {Monu} and Prasad, Shruti and Panwar, Neelam and Kundu, Richa},
   title        = {{StarNest: Open-Source Web Pipeline for Open Star Cluster Photometry and Kinematics}},
@@ -17,12 +18,11 @@ const BIBTEX_REPO = `@software{starnest_github_2026,
   publisher    = {GitHub},
   url          = {${GITHUB_REPO_URL}}
 }`;
-const BIBTEX_PAPER = `@article{starnest_clusters_2026,
+const BIBTEX_PAPER = `@unpublished{starnest_clusters_2026,
   author       = {Panwar, Neelam and Kundu, Richa and Kaushik, Nikhil and Basur, Pryanshu and {Monu} and Prasad, Shruti},
   title        = {Photometric and Kinematic Study of Open Star Clusters},
-  journal      = {In preparation},
   year         = {2026},
-  note         = {Haffner 14, Melotte 111, NGC 2910, Ruprecht 147, UBC 52, UPK 545; Gaia DR3}
+  note         = {In preparation. Haffner 14, Melotte 111, NGC 2910, Ruprecht 147, UBC 52, UPK 545; Gaia DR3}
 }`;
 const BIBITEM_PAPER = `\\bibitem{starnest_clusters_2026} Panwar N., Kundu R., Kaushik N., Basur P., Monu, Prasad S., 2026, Photometric and Kinematic Study of Open Star Clusters, in preparation`;
 // =====================================================================
@@ -60,8 +60,12 @@ const BIBITEM_PAPER = `\\bibitem{starnest_clusters_2026} Panwar N., Kundu R., Ka
   $$('[data-repo-link],[data-repo-cite]').forEach(a => { a.href = GITHUB_REPO_URL; });
   $$('[data-issues-link]').forEach(a => { a.href = GITHUB_ISSUES_URL; });
   $$('[data-paper-link]').forEach(a => {
+    if (!PAPER_DOI_URL) {                                           // unpublished: no dead link; the BibTeX button takes the full width
+      a.style.display = 'none';
+      if (a.parentElement) a.parentElement.classList.replace('grid-cols-2', 'grid-cols-1');
+      return;
+    }
     a.href = PAPER_DOI_URL;
-    if (PAPER_DOI_URL === '#') { a.removeAttribute('target'); a.title = 'Paper link coming soon'; a.addEventListener('click', e => e.preventDefault()); }
   });
 
   // ---------- 3. footer jump links -> real nav buttons (reuses app.js navigation) ----------

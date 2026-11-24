@@ -1,0 +1,20 @@
+{
+  "title": "StarNest: Open-Source Web Pipeline for Open Star Cluster Photometry and Kinematics",
+  "upload_type": "software",
+  "version": "1.0.0",
+  "description": "StarNest takes a Gaia DR3 cone-search catalogue of an open cluster and returns Gaussian-mixture membership, extinction, a PARSEC isochrone fit, proper-motion and 3-D kinematics, a mass function compared with Salpeter, Kroupa and Chabrier, binary-aware stellar and cluster masses, and mass-segregation and tidal diagnostics. It runs as a web app, as Python modules and as a batch command line. The mass method is inspired by Almeida, Monteiro & Dias (2023, MNRAS 525, 2315) but is not a strict replication; see the repository README, section 9.",
+  "creators": [
+    {"name": "Kaushik, Nikhil", "affiliation": "Indian Institute of Technology Roorkee"},
+    {"name": "Basur, Pryanshu", "affiliation": "Indian Institute of Technology Mandi"},
+    {"name": "Monu", "affiliation": "Department of Physics and Astrophysics, University of Delhi"},
+    {"name": "Prasad, Shruti", "affiliation": "Indian Institute of Science, Bengaluru"},
+    {"name": "Panwar, Neelam", "affiliation": "Aryabhatta Research Institute of Observational Sciences (ARIES), Nainital"},
+    {"name": "Kundu, Richa", "affiliation": "Miranda House, University of Delhi"}
+  ],
+  "license": "MIT",
+  "access_right": "open",
+  "keywords": ["open clusters", "Gaia DR3", "photometry", "kinematics", "mass function", "astronomy"],
+  "related_identifiers": [
+    {"identifier": "https://github.com/NIKHILKAUSHIK9/StarNest", "relation": "isSupplementedBy", "scheme": "url"}
+  ]
+}

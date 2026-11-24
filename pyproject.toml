@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "starnest"
+version = "1.0.0"
+description = "Gaia DR3 open-cluster membership, extinction, isochrone fit, kinematics, IMF, binaries and dynamics"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+  "numpy", "pandas", "scipy", "scikit-learn>=1.3", "matplotlib", "astropy", "astroquery", "requests", "PyYAML", "pyarrow", "pydantic>=2",
+]
+
+[project.optional-dependencies]
+api = ["fastapi", "uvicorn", "python-multipart", "httpx"]     # web back end, Streamlit bridge and the batch CLI (the CLI calls the app in-process)
+orbit = ["galpy"]                                              # dynamics.orbit_tail_check
+dust = ["dustmaps"]                                            # Bayestar19 dust source
+dev = ["pytest", "ruff", "httpx", "fastapi", "uvicorn", "python-multipart", "galpy"]
+
+[project.scripts]
+starnest = "starnest.cli:main"
+
+[tool.setuptools]
+packages = ["starnest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 200                      # the code base uses long, aligned one-liners on purpose (formulas next to their comments)
+target-version = "py310"
+extend-exclude = ["data", "scratchpad"]
+
+[tool.ruff.lint]
+select = ["E9", "F"]                   # syntax errors + pyflakes (undefined names, unused imports / variables); style rules are not enforced

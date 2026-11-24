@@ -59,6 +59,9 @@
     </div>
   </nav>
 
+  <!-- Shown only when the Python back end is unreachable and the in-browser engine answers (app.js updateEngineBadge). It sits under the fixed nav (mt-16); main loses its own top margin while it is visible. -->
+  <div id="engine-approx-banner" role="alert" class="mt-16 px-4 py-1.5 text-center text-xs font-semibold" style="display:none;background:#7f1d1d;color:#fecaca;border-bottom:1px solid #ef4444">Browser engine: approximate, not the published method. Numbers differ from the Python pipeline (its own GMM implementation, binned mass-function fit); use the Python back end for anything you report.</div>
+
   <main id="pages-container" class="relative mt-16 flex-1" style="min-height: calc(100vh - 4rem)">
 
     <!-- PAGE: HOME -->
@@ -69,7 +72,7 @@
         <h1 class="text-4xl md:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-accent-cyan via-accent-purple to-accent-violet leading-tight mb-6">Photometric &amp; Kinematic Study of Open Star Clusters</h1>
         <div class="max-w-3xl mx-auto text-left space-y-4">
           <p class="text-gray-400 leading-relaxed text-base">Open clusters are among the best natural laboratories for stellar evolution: their stars formed together, share a common age and chemical composition, and lie at nearly the same distance. Turning raw survey data into cluster parameters, however, normally means stitching together separate scripts for quality cuts, membership selection, extinction correction, isochrone fitting and mass-function analysis.</p>
-          <p class="text-gray-400 leading-relaxed text-base">This application automates that full workflow for <em class="text-gray-300">Gaia DR3</em> data and accompanies our study of six open clusters (Haffner 14, Melotte 111, NGC 2910, Ruprecht 147, UBC 52, UPK 545) spanning a wide range of log(age/yr).<!-- TODO(NK): the supplied text ended at "spanning log(age/yr)" - insert the age range here --></p>
+          <p class="text-gray-400 leading-relaxed text-base">This application automates that full workflow for <em class="text-gray-300">Gaia DR3</em> data and accompanies our study of six open clusters (Haffner 14, Melotte 111, NGC 2910, Ruprecht 147, UBC 52, UPK 545) spanning a wide range of log(age/yr).</p>
         </div>
       </div>
 
@@ -105,7 +108,7 @@
               <div class="wf-swap">
                 <p class="wf-tease">Who belongs to the cluster?</p>
                 <div class="wf-detail">
-                  <p>A two-component Gaussian Mixture Model in (&mu;<sub>&alpha;</sub>, &mu;<sub>&delta;</sub>, &varpi;) space, with a distance pre-selection window and membership probabilities (members: <i>P</i> &ge; 0.8).</p>
+                  <p>A Gaussian Mixture Model in (&mu;<sub>&alpha;</sub>, &mu;<sub>&delta;</sub>, &varpi;) space, with a distance pre-selection window. The number of components <i>K</i> is chosen by BIC over 2&ndash;6 (or fixed by you); the cluster is the tightest component, and stars with membership probability <i>P</i> &ge; 0.5 are members.</p>
                   <a href="#" data-navigate="membership" class="wf-open">Open <i class="fas fa-arrow-right"></i></a>
                 </div>
               </div>
@@ -186,7 +189,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div class="glass-card rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03]">
             <h3 class="text-base font-semibold mb-2 flex items-center gap-2"><i class="fas fa-play text-accent-cyan"></i> How to use it</h3>
-            <p class="text-sm text-gray-400 leading-relaxed">Choose a cluster in the sidebar, adjust the filter and membership thresholds, and inspect the vector-point diagram, CMD, spatial map and mass function as they update.</p>
+            <p class="text-sm text-gray-400 leading-relaxed">Upload a Gaia DR3 CSV for your cluster, enter its literature distance and window, adjust the quality cuts and membership cutoff, then run the GMM and continue through extinction &amp; isochrone, kinematics and the mass function.</p>
           </div>
           <div class="glass-card rounded-2xl p-6 border border-white/[0.06] bg-white/[0.03]">
             <h3 class="text-base font-semibold mb-2 flex items-center gap-2"><i class="fas fa-triangle-exclamation text-yellow-400"></i> Caveats</h3>
@@ -423,6 +426,7 @@
         </div>
 
         <div id="gmm-results-scroll" class="flex-1 min-w-0 space-y-6">
+          <div id="panel-cluster-rule"></div>
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
             <h2 class="text-2xl font-bold">Membership Probability <span class="text-accent-cyan">(GMM)</span></h2>
             <div class="text-xs text-accent-cyan/90 bg-accent-cyan/10 px-3 py-1 rounded-full border border-accent-cyan/20 flex items-center gap-1.5 self-start md:self-auto">
@@ -484,6 +488,7 @@
               </div>
             </div>
           </div>
+          <div id="panel-gmm-reliability"></div>
         </div>
       </div>
     </section>
@@ -673,6 +678,7 @@
             </div>
           </div>
         </div>
+        <div id="panel-iso-likelihood"></div>
       </div>
     </section>
 
@@ -742,6 +748,8 @@
             <div id="plot-2d-quiver" style="height: 480px; width: 100%;"></div>
           </div>
         </div>
+        <div id="panel-velocities"></div>
+        <div id="panel-dynamics"></div>
       </div>
     </section>
 
@@ -818,7 +826,7 @@
                 <input id="slider-mass-max" type="range" min="5.0" max="50.0" step="0.5" value="50.0" class="w-full accent-cyan-500 mt-1">
               </div>
               <label class="flex items-center gap-2 text-xs text-gray-300 cursor-pointer pt-1">
-                <input id="check-include-companions" type="checkbox" checked class="accent-cyan-400 rounded">
+                <input id="check-include-companions" type="checkbox" class="accent-cyan-400 rounded" title="Needs an MC_CompMass column (not produced until the binary-fraction module exists)">
                 <span>Include Companion Masses (<code>MC_CompMass</code>)</span>
               </label>
             </div>
@@ -879,6 +887,7 @@
             </div>
           </div>
         </div>
+        <div id="panel-binaries"></div>
       </div>
     </section>
   </main>
@@ -916,8 +925,8 @@
           <div class="flex gap-2"><dt class="text-gray-500 w-24 shrink-0">Cluster reference</dt><dd>COCD Catalogue</dd></div>
         </dl>
         <div class="flex flex-wrap gap-3 text-sm">
-          <a data-repo-link href="https://github.com/NIKHILKAUSHIK9/demo_trial.github.io" target="_blank" rel="noopener" class="inline-flex items-center gap-2 text-gray-300 hover:text-accent-cyan transition-colors"><i class="fab fa-github"></i> GitHub Repository</a>
-          <a data-issues-link href="https://github.com/NIKHILKAUSHIK9/demo_trial.github.io/issues" target="_blank" rel="noopener" class="inline-flex items-center gap-2 text-gray-300 hover:text-accent-cyan transition-colors"><i class="fas fa-bug"></i> Report an Issue</a>
+          <a data-repo-link href="https://github.com/NIKHILKAUSHIK9/StarNest" target="_blank" rel="noopener" class="inline-flex items-center gap-2 text-gray-300 hover:text-accent-cyan transition-colors"><i class="fab fa-github"></i> GitHub Repository</a>
+          <a data-issues-link href="https://github.com/NIKHILKAUSHIK9/StarNest/issues" target="_blank" rel="noopener" class="inline-flex items-center gap-2 text-gray-300 hover:text-accent-cyan transition-colors"><i class="fas fa-bug"></i> Report an Issue</a>
         </div>
       </div>
 
@@ -931,7 +940,7 @@
           </div>
           <p class="text-xs text-gray-400 mb-3">Using the StarNest web pipeline or source code in your workflow?</p>
           <div class="grid grid-cols-2 gap-2">
-            <a data-repo-cite href="https://github.com/NIKHILKAUSHIK9/demo_trial.github.io" target="_blank" rel="noopener" class="fc-btn fc-btn-primary">View GitHub Citation <i class="fas fa-arrow-up-right-from-square text-[10px]"></i></a>
+            <a data-repo-cite href="https://github.com/NIKHILKAUSHIK9/StarNest" target="_blank" rel="noopener" class="fc-btn fc-btn-primary">View GitHub Citation <i class="fas fa-arrow-up-right-from-square text-[10px]"></i></a>
             <button type="button" data-copy="repo" class="fc-btn fc-btn-ghost"><span data-label>Copy Repo BibTeX</span></button>
           </div>
         </div>
@@ -960,9 +969,9 @@
       <span class="truncate">Stage: <span id="footer-stage" class="text-gray-200">Membership</span></span>
     </div>
     <div class="flex items-center gap-4">
-      <a data-repo-cite href="https://github.com/NIKHILKAUSHIK9/demo_trial.github.io" target="_blank" rel="noopener" class="hover:text-accent-cyan transition-colors hidden sm:inline">Cite GitHub</a>
+      <a data-repo-cite href="https://github.com/NIKHILKAUSHIK9/StarNest" target="_blank" rel="noopener" class="hover:text-accent-cyan transition-colors hidden sm:inline">Cite GitHub</a>
       <button type="button" data-open-cite class="hover:text-accent-cyan transition-colors">Cite Paper (BibTeX)</button>
-      <a data-issues-link href="https://github.com/NIKHILKAUSHIK9/demo_trial.github.io/issues" target="_blank" rel="noopener" class="hover:text-accent-cyan transition-colors hidden sm:inline">Report Bug</a>
+      <a data-issues-link href="https://github.com/NIKHILKAUSHIK9/StarNest/issues" target="_blank" rel="noopener" class="hover:text-accent-cyan transition-colors hidden sm:inline">Report Bug</a>
       <span class="flex items-center gap-1.5"><span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span></span> Pipeline Ready</span>
     </div>
   </footer>
@@ -990,6 +999,7 @@
   </div>
 
   <script src="assets/js/app.js"></script>
+  <script src="assets/js/panels.js"></script>
   <script src="assets/js/footer.js"></script>
 </body>
 </html>

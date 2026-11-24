@@ -893,7 +893,7 @@
     async function localBackendEngine(endpoint, options = {}) {
       if (endpoint === '/run-gmm') {
         const params = JSON.parse(options.body || '{}');
-        const cacheKey = `gmm_${ options.body }|v${localStore.ver[params.filename] || 0}|e${uiEbv()}`;
+        const cacheKey = `gmm_${ options.body }|v${localStore.ver[params.filename] || 0}`;
         const hitGmm = localStore.cache[cacheKey];
         if (hitGmm) { restoreMembers(hitGmm); return hitGmm.result; }   // cache hit must restore downstream state too
 
@@ -1022,10 +1022,10 @@
         const distFromMemPc = Number.isFinite(medMemPlx) ? 1000.0 / (medMemPlx - plxZp) : distanceLit;
         const dmCluster = 5.0 * Math.log10(distFromMemPc) - 5.0;
 
-        // E(B-V) comes from the Isochrone page input (was hard-coded 0.15 for every cluster)
-        const avUI = STARNEST_AV_PER_EBV * uiEbv();
-        members = enrichPhotometryAndClassify(members, dmCluster, avUI);
-        nonMembers = enrichPhotometryAndClassify(nonMembers, dmCluster, avUI);
+        // Stage 1 does NOT apply the Isochrone-page E(B-V) (its field carries a default, not a measurement). Provisional columns assume
+        // zero extinction and say so in E_BV_used; stage 2 (/compute-cmd) overwrites them with the real, IRSA / typed value.
+        members = enrichPhotometryAndClassify(members, dmCluster, 0).map(r => ({ ...r, E_BV_used: 0 }));
+        nonMembers = enrichPhotometryAndClassify(nonMembers, dmCluster, 0).map(r => ({ ...r, E_BV_used: 0 }));
 
         const verId = commitMembers(members);
 
@@ -1520,7 +1520,7 @@
         }
 
         const logAgeVal = Number.isFinite(Number(params.log_age)) ? Number(params.log_age) : 7.5;
-        const mfKind = 'Initial Mass Function (IMF)';
+        const mfKind = (Number(params.log_age) > 7.5) ? 'Present-Day Mass Function' : 'Initial Mass Function (IMF)';   // same rule as imf.mf_label()
 
         const result = {
           imf: {
@@ -1642,6 +1642,10 @@
       el.style.background = py ? 'rgba(34,197,94,0.16)' : 'rgba(245,158,11,0.16)';
       el.style.border = py ? '1px solid rgba(34,197,94,0.4)' : '1px solid rgba(245,158,11,0.45)';
       el.style.color = py ? '#86efac' : '#fcd34d';
+      // Red banner only after the probe has FAILED (backendAlive === false): no flash while the first probe is still running.
+      const bn = document.getElementById('engine-approx-banner'), mn = document.getElementById('pages-container');
+      const approx = backendAlive === false;
+      if (bn) { bn.style.display = approx ? '' : 'none'; if (mn) mn.style.marginTop = approx ? '0' : ''; }
     }
 
     let toastCount = 0;
@@ -1937,7 +1941,6 @@
       const kVal = document.getElementById('input-gmm-k').value;
       const params = {
         filename: window.rawFileName,
-        ebv_ui: uiEbv(),
         ruwe_max: parseFloat(document.getElementById('input-ruwe').value),
         gofal_max: parseFloat(document.getElementById('input-gofal').value),
         epmra_max: parseFloat(document.getElementById('input-epmra').value),
@@ -1949,7 +1952,8 @@
         cutoff: parseFloat(document.getElementById('input-cutoff').value),
         k: kVal === 'auto' ? null : parseInt(kVal, 10),
         gmm_opt: document.getElementById('input-gmm-opt').value,
-        plx_zp: parseFloat(document.getElementById('input-gmm-plxzp').value) || 0.0
+        plx_zp: parseFloat(document.getElementById('input-gmm-plxzp').value) || 0.0,
+        ...(window.starnestClusterRuleParams ? window.starnestClusterRuleParams() : {})   // cluster_rule / lit_pm / lit_plx from the panel (Python backend only)
       };
 
       try {
@@ -2422,6 +2426,7 @@
         });
 
         if (progressBar) progressBar.style.width = '100%';
+        window._lastCmdMeta = data.meta;               // read by assets/js/panels.js (isochrone provenance banner)
         renderIsoWorkflow(data.meta, params);
 
         // Update Stage 2 Metadata & frac_colour_ok warning (< 0.9)
@@ -2709,12 +2714,13 @@
       const params = {
         filename: targetFile,
         bins: autoBins ? null : parseInt(document.getElementById('slider-bins').value, 10),
-        fit_min_logM: parseFloat(document.getElementById('slider-fit-logm').value),
         mass_min: parseFloat(document.getElementById('slider-mass-min').value),
         mass_max: parseFloat(document.getElementById('slider-mass-max').value),
         include_companions: document.getElementById('check-include-companions').checked,
         log_age: logAgeVal
       };
+      // The completeness limit is MEASURED by the backend (G_lim -> mass). The slider is sent only as an explicit user override.
+      if (window._fitMinOverride) params.fit_min_logM = parseFloat(document.getElementById('slider-fit-logm').value);
       const reqId = (window._imfReq = (window._imfReq || 0) + 1);   // newest request wins
 
       try {
@@ -2726,13 +2732,20 @@
 
         if (reqId !== window._imfReq) return;      // a newer slider position superseded this answer
 
-        // The IMF page is always labelled 'Initial Mass Function (IMF)' (heading, plot-card title and plot title)
+        // Label follows the cluster age (backend imf.mf_label): log(age/yr) > 7.5 -> 'Present-Day Mass Function'
         const mfKind = data.imf.mf_kind || 'Initial Mass Function (IMF)';
+        const fitLim = (data.imf.meta && Number.isFinite(data.imf.meta.fit_min_logm)) ? data.imf.meta.fit_min_logm : -0.7;
+        const limSrc = (data.imf.meta && data.imf.meta.fit_min_source) || 'default';
+        if (limSrc !== 'override') {                         // show the measured / default limit on the slider without making it an override
+          const sl = document.getElementById('slider-fit-logm');
+          sl.value = Math.min(Math.max(fitLim, parseFloat(sl.min)), parseFloat(sl.max));
+          document.getElementById('fit-logm-value').textContent = fitLim.toFixed(2) + (limSrc === 'measured' ? ' (measured)' : ' (default)');
+        }
         const headingAccent = document.getElementById('imf-page-heading-accent');
         const regimeBadge = document.getElementById('imf-age-regime-badge');
         const plotCardTitle = document.getElementById('imf-plot-card-title');
         if (headingAccent) headingAccent.textContent = mfKind;
-        if (regimeBadge) regimeBadge.textContent = `log(Age/yr) = ${logAgeVal.toFixed(2)} \u2192 Initial Mass Function (IMF)`;
+        if (regimeBadge) regimeBadge.textContent = `log(Age/yr) = ${logAgeVal.toFixed(2)} \u2192 ${mfKind}`;
         if (plotCardTitle) {
           plotCardTitle.textContent = `${mfKind} — model comparison (Salpeter 1955, Kroupa 2001 & Chabrier 2003)`;
         }
@@ -2774,20 +2787,23 @@
             y: data.completeness.fraction,
             mode: 'lines+markers',
             type: 'scatter',
-            name: 'Assumed completeness (not measured)',
+            name: data.completeness.assumed ? 'Assumed completeness (not measured)' : 'Measured retained fraction (quality cuts)',
             line: { color: '#00d4ff', width: 2.2 },
             marker: { color: '#00d4ff', size: 5 }
           },
           {
             x: [Math.min(...data.completeness.mag), Math.max(...data.completeness.mag)],
-            y: [0.5, 0.5],
+            y: data.completeness.assumed ? [0.5, 0.5] : [data.completeness.frac, data.completeness.frac],
             mode: 'lines',
             type: 'scatter',
-            name: '50% Completeness Limit',
+            name: data.completeness.assumed ? '50% Completeness Limit' : `Completeness threshold (${data.completeness.frac})`,
             line: { color: '#fbbf24', width: 1.5, dash: 'dash' }
           }
         ], getPlotlyLayout({
-          title: { text: 'Assumed completeness model (illustrative, G50 = 17.2; not measured from data)', font: { size: 13, color: '#e5e7eb' } },
+          title: { text: data.completeness.assumed
+                     ? 'Assumed completeness model (illustrative, G50 = 17.2; not measured from data)'
+                     : `Measured completeness (retained fraction after quality cuts)${Number.isFinite(data.completeness.g_lim) ? ' \u2014 G_lim = ' + data.completeness.g_lim.toFixed(1) : ' \u2014 threshold never reached, default limit used'}`,
+                   font: { size: 13, color: '#e5e7eb' } },
           xaxis: { ...getPlotlyLayout().xaxis, title: 'G magnitude' },
           yaxis: { ...getPlotlyLayout().yaxis, title: 'Completeness Fraction', range: [0, 1.1] },
           legend: { font: { color: '#d1d5db' }, bgcolor: 'rgba(0,0,0,0)' }
@@ -2889,11 +2905,11 @@
         const yMax = allY.length ? Math.max(...allY) + 0.8 : 3.0;
 
         imfTraces.push({
-          x: [params.fit_min_logM, params.fit_min_logM],
+          x: [fitLim, fitLim],
           y: [yMin, yMax],
           mode: 'lines',
           type: 'scatter',
-          name: `Completeness limit (logM = ${params.fit_min_logM.toFixed(2)})`,
+          name: `Completeness limit (logM = ${fitLim.toFixed(2)}, ${limSrc})`,
           line: { color: '#9ca3af', width: 1.3, dash: 'dot' }
         });
 
@@ -2912,7 +2928,7 @@
           document.getElementById('imf-slope-value').textContent = `${data.imf.slope.toFixed(3)}${Number.isFinite(se) ? ' ± ' + se.toFixed(3) : ''}`;
           const nFit = data.imf.meta ? data.imf.meta.n_fit_bins : '-';
           document.getElementById('imf-r2-value').textContent =
-            `R² = ${(data.imf.r_squared || 0).toFixed(3)} | ${nFit} bins in fit | N = ${nMasses || '-'}`;
+            `${(data.imf.meta && data.imf.meta.method === 'mle') ? 'MLE, bootstrap σ | binned R² = ' : 'R² = '}${(data.imf.r_squared || 0).toFixed(3)} | ${nFit} bins in fit | N = ${nMasses || '-'}${(data.imf.meta && data.imf.meta.n_excluded_approx_ml) ? ' | ' + data.imf.meta.n_excluded_approx_ml + ' approx-mass stars excluded' : ''}`;
           const delta = data.imf.slope - SALP;
           const sig = (Number.isFinite(se) && se > 0) ? ` (${(Math.abs(delta) / se).toFixed(1)}σ)` : '';
           const dEl = document.getElementById('imf-slope-delta');
@@ -3284,7 +3300,8 @@
         triggerDebouncedIMF();
       });
       document.getElementById('slider-fit-logm').addEventListener('input', (e) => {
-        document.getElementById('fit-logm-value').textContent = parseFloat(e.target.value).toFixed(2);
+        window._fitMinOverride = true;                      // user moved the slider -> explicit override of the measured limit
+        document.getElementById('fit-logm-value').textContent = parseFloat(e.target.value).toFixed(2) + ' (override)';
         triggerDebouncedIMF();
       });
       document.getElementById('slider-mass-min').addEventListener('input', (e) => {

@@ -1,0 +1,16 @@
+# python -m starnest run examples/config.example.yaml
+output_dir: starnest_output
+steps: [gmm, cmd, imf, binaries, velocities, dynamics, isofit]    # default: all, in this order
+defaults:
+  gmm:  {ruwe_max: 1.6, cutoff: 0.5}
+  cmd:  {ebv_mode: center, allow_network: true, iso_extinction: reddened}   # center = IRSA dust at the cluster centre; use ebv_mode: fixed + ebv: 0.15 offline
+  imf:  {method: mle}
+  binaries: {f_bin: 0.5, n_mc: 50}
+  velocities: {n_boot: 500}
+  dynamics: {n_random: 100, orbit: true}      # orbit needs galpy; otherwise a note is returned
+  isofit: {dust_source: sfd}
+clusters:
+  - name: UPK_545
+    csv: UPK_545_raw.csv          # Gaia DR3 VizieR cone-search CSV (see README section 3.0); path relative to this file
+    gmm: {distance_lit: 325, half_width: 150}
+    cmd: {age: 8.2, metallicity: 0.0}

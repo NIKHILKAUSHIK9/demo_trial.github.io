@@ -1,20 +1,91 @@
 cff-version: 1.2.0
-message: "If you use this software, please cite it as below."
-title: "StarNest: photometry and kinematics of open star clusters with Gaia DR3"
+message: "If you use StarNest, please cite the software below. If your use relates to our open-cluster study, also cite the working paper listed under references (it is not yet published, so it is not the preferred citation)."
+title: "StarNest: Open-Source Web Pipeline for Open Star Cluster Photometry and Kinematics"
 type: software
 version: 1.0.0
+abstract: >-
+  StarNest takes a Gaia DR3 cone-search catalogue of an open cluster and returns Gaussian-mixture membership, extinction, a PARSEC
+  isochrone fit, proper-motion and 3-D kinematics, a mass function compared with Salpeter, Kroupa and Chabrier, binary-aware stellar and
+  cluster masses, and mass-segregation and tidal diagnostics. It runs as a web app, as Python modules and as a batch command line.
+  The mass method is inspired by Almeida, Monteiro & Dias (2023) but is not a strict replication; see the README, section 9.
 authors:
   - family-names: Kaushik
     given-names: Nikhil
+    affiliation: "Indian Institute of Technology Roorkee"
   - family-names: Basur
     given-names: Pryanshu
-  - name: Monu
+    affiliation: "Indian Institute of Technology Mandi"
+  - family-names: Monu
+    affiliation: "Department of Physics and Astrophysics, University of Delhi"
   - family-names: Prasad
     given-names: Shruti
+    affiliation: "Indian Institute of Science, Bengaluru"
   - family-names: Panwar
     given-names: Neelam
+    affiliation: "Aryabhatta Research Institute of Observational Sciences (ARIES), Nainital"
   - family-names: Kundu
     given-names: Richa
-repository-code: "https://github.com/NIKHILKAUSHIK9/demo_trial.github.io"
-url: "https://demotrialappio-bcc7ci9wypgzo8pbq4fpbb.streamlit.app/"
+    affiliation: "Miranda House, University of Delhi"
+repository-code: "https://github.com/NIKHILKAUSHIK9/StarNest"
+url: "https://starnest.streamlit.app/"
 license: MIT
+keywords:
+  - open clusters
+  - Gaia DR3
+  - photometry
+  - kinematics
+  - mass function
+  - astronomy
+references:
+  - type: unpublished
+    status: in-preparation
+    title: "Photometric and Kinematic Study of Open Star Clusters"
+    authors:
+      - family-names: Panwar
+        given-names: Neelam
+      - family-names: Kundu
+        given-names: Richa
+      - family-names: Kaushik
+        given-names: Nikhil
+      - family-names: Basur
+        given-names: Pryanshu
+      - family-names: Monu
+      - family-names: Prasad
+        given-names: Shruti
+    year: 2026
+    notes: "Haffner 14, Melotte 111, NGC 2910, Ruprecht 147, UBC 52, UPK 545; Gaia DR3. Working paper: no journal, volume, pages or DOI exist yet."
+  - type: article
+    title: "Revisiting the mass of open clusters with Gaia data"
+    authors:
+      - family-names: Almeida
+        given-names: Anderson
+      - family-names: Monteiro
+        given-names: Hektor
+      - family-names: Dias
+        given-names: Wilton S.
+    journal: "Monthly Notices of the Royal Astronomical Society"
+    volume: 525
+    issue: 2
+    start: 2315
+    year: 2023
+    url: "https://arxiv.org/abs/2307.15182"
+    notes: "The method StarNest's binary-aware masses are inspired by (README section 9 lists the differences)."
+  - type: article
+    title: "Astrophysical parameters of Galactic open clusters"
+    authors:
+      - family-names: Kharchenko
+        given-names: Nina V.
+      - family-names: Piskunov
+        given-names: Anatoly E.
+      - family-names: Röser
+        given-names: Siegfried
+      - family-names: Schilbach
+        given-names: Elena
+      - family-names: Scholz
+        given-names: Ralf-Dieter
+    journal: "Astronomy & Astrophysics"
+    volume: 438
+    start: 1163
+    end: 1173
+    year: 2005
+    notes: "COCD, the Catalogue of Open Cluster Data cited as the cluster reference in the app footer."

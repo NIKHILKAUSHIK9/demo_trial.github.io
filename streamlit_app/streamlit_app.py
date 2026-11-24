@@ -45,7 +45,7 @@ def inline_page(flags: str, extra_js: str = "") -> str:
     html = (ROOT / "index.html").read_text(encoding="utf-8")
     css = (ROOT / "assets/css/styles.css").read_text(encoding="utf-8")
     html = html.replace('<link rel="stylesheet" href="assets/css/styles.css">', f"<style>{css}</style>")
-    for name in ("tailwind-config", "app", "footer"):
+    for name in ("tailwind-config", "app", "panels", "footer"):
         js = (ROOT / f"assets/js/{name}.js").read_text(encoding="utf-8").replace("</script>", "<\\/script>")
         tag = f'<script src="assets/js/{name}.js"></script>'
         pre = f"<script>{extra_js}</script>" if (name == "app" and extra_js) else ""

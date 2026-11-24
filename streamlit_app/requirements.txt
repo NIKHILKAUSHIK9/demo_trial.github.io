@@ -10,3 +10,6 @@ fastapi
 httpx
 python-multipart
 requests
+pyarrow
+pydantic>=2
+PyYAML

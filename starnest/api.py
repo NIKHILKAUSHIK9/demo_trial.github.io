@@ -62,7 +62,7 @@ MAX_UPLOAD_MB = 50
 
 def _new_state() -> dict:
     return dict(files={}, members=None, analysis=None, iso=None, parsec=None, imf_bins=None, imf_chi2=None, name='Cluster',
-                completeness=None, iso0=None, ext=None, gmm_diag=None, gmm_res=None, binaries=None, velocities=None, dynamics=None, isofit=None, imf_res=None)
+                completeness=None, iso0=None, ext=None, gmm_diag=None, gmm_res=None, binaries=None, velocities=None, dynamics=None, isofit=None, imf_res=None, iso_stale=None)
 
 
 _SESSIONS: dict = {}                                           # sid -> {'s': state dict, 't': last use}
@@ -91,6 +91,18 @@ class _SessionState:
 
 
 STATE = _SessionState()
+
+
+def _stale_isochrone_message() -> str | None:
+    """TERMINOLOGY  stale isochrone: the analysis table's masses came from an isochrone fetched for one (logAge, [M/H]), but the inputs on the
+    Isochrone tab have since changed and the new isochrone has NOT been fetched (a no-network refresh cannot fetch it).
+    WORKFLOW  1) read STATE['iso_stale'] (set by compute_cmd); 2) None -> fine; 3) else return the sentence every dependent route shows."""
+    st = STATE['iso_stale']
+    if not st:
+        return None
+    return (f"The isochrone masses are stale: they were assigned with logAge {st['logAge']}, [M/H] {st['mh']} but the inputs are now logAge "
+            f"{st['requested_logAge']}, [M/H] {st['requested_mh']} and that isochrone has not been fetched. Press 'Apply Extinction & Fetch PARSEC' "
+            f"on the Isochrone tab, then run this step again.")
 
 app = FastAPI(title='StarNest backend')
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'], expose_headers=['Content-Disposition'])
@@ -313,7 +325,7 @@ def run_gmm(req: RunGmmReq):
 
     members, field = enrich(res.members), res.non_members
     STATE['members'], STATE['analysis'], STATE['iso'], STATE['parsec'] = members, None, None, None
-    STATE['iso0'], STATE['ext'] = None, None
+    STATE['iso0'], STATE['ext'], STATE['iso_stale'] = None, None, None
     STATE['gmm_res'], STATE['binaries'], STATE['velocities'], STATE['dynamics'], STATE['isofit'], STATE['imf_res'] = res, None, None, None, None, None
     # measured completeness: quality-cut survivors / raw stars, both inside the same distance window (see gmm.completeness_curve)
     raw_win = GMM.distance_window(raw, _pv(p, 'distance_lit', 341.0), _pv(p, 'half_width', 195.5), zp)
@@ -416,14 +428,25 @@ def compute_cmd(req: ComputeCmdReq):
     except (EXT.CMDRequestError, RuntimeError, KeyError, ValueError) as e:        # CMD down / rejected: keep going, tell the user
         wf['parsec'] = dict(state='failed', error=str(e))
         notes.append(f'PARSEC download failed ({e}); isochrone not drawn and masses use the L(M) fallback.')
-    STATE['iso'] = iso_plot
-    STATE['parsec'] = dict(raw=raw_used, name=f'PARSEC_gaiaEDR3_logAge{age:.2f}_MH{mh:+.2f}_AV{av_send:.3f}.dat') if raw_used else None
     d = derive_columns(d, iso=iso0)
     d['E_BV_used'] = meta['E_BV_mean']                      # the E(B-V) actually behind M_G_corr / bp_rp_corr in this table
-    STATE['analysis'] = dict(src=p['members_filename'], df=d)
-    STATE['iso0'] = iso0                                    # intrinsic (A_V=0) isochrone: G_lim -> mass conversion in /compute-imf
-    STATE['ext'] = dict(DM=meta['DM'], A_G=EXT.AG_AV * av_mean, A_BP=EXT.ABP_AV * av_mean, A_RP=EXT.ARP_AV * av_mean, A_V=av_mean,
-                        E_BV=meta['E_BV_mean'], d_pc=meta['d_pc'], logAge=age)
+    prior, prior_ext = STATE['analysis'], STATE['ext']
+    # A refresh that could NOT fetch this (logAge, [M/H]) (no network on an automatic refresh, or CMD down) must not replace a table whose masses
+    # came from a real isochrone with one that only has the L(M) fallback: keep the good table, flag it stale, and let dependent steps say so.
+    keep_prior = (iso0 is None and prior is not None and prior['src'] == p['members_filename'] and prior_ext is not None
+                  and 'MC_Mass_src' in prior['df'] and bool((prior['df']['MC_Mass_src'] == 'isochrone').any()))
+    if keep_prior:
+        STATE['iso_stale'] = dict(logAge=prior_ext.get('logAge'), mh=prior_ext.get('MH'), requested_logAge=age, requested_mh=mh)
+        notes.append(f"Isochrone for logAge {age}, [M/H] {mh} is not fetched: the mass table from logAge {prior_ext.get('logAge')} is kept but marked stale. "
+                     "Press \"Apply Extinction & Fetch PARSEC\" to refresh it.")
+    else:
+        STATE['iso_stale'] = None
+        STATE['iso'] = iso_plot
+        STATE['parsec'] = dict(raw=raw_used, name=f'PARSEC_gaiaEDR3_logAge{age:.2f}_MH{mh:+.2f}_AV{av_send:.3f}.dat') if raw_used else None
+        STATE['analysis'] = dict(src=p['members_filename'], df=d)
+        STATE['iso0'] = iso0                                # intrinsic (A_V=0) isochrone: G_lim -> mass conversion in /compute-imf
+        STATE['ext'] = dict(DM=meta['DM'], A_G=EXT.AG_AV * av_mean, A_BP=EXT.ABP_AV * av_mean, A_RP=EXT.ARP_AV * av_mean, A_V=av_mean,
+                            E_BV=meta['E_BV_mean'], d_pc=meta['d_pc'], logAge=age, MH=mh)
 
     reddened = handling == 'reddened'
     cx, my = ('bp_rp_obs', 'M_G_obs') if reddened else ('bp_rp_corr', 'M_G_corr')
@@ -497,6 +520,9 @@ def compute_imf(req: ImfReq):
     d_all = analysis_rows(p['filename'])
     a = STATE['analysis']
     a_src = a['src'] if a is not None and a['src'] == p['filename'] else None
+    stale = _stale_isochrone_message() if a_src is not None else None
+    if stale:
+        raise HTTPException(400, stale)
     d = d_all[~d_all['Star_Type'].isin(EVOLVED_TYPES)] if 'Star_Type' in d_all else d_all
     n_excl = len(d_all) - len(d)
     lo, hi = float(p.get('mass_min') or IMF.M_MIN_FLOOR), float(p.get('mass_max') or IMF.M_MAX_CAP)
@@ -587,6 +613,9 @@ def dl_imf_chi2():
 def _stage2(name: str):
     """Analysis table + intrinsic isochrone + extinction meta, or a 400 that says which step is missing."""
     d = analysis_rows(name)
+    stale = _stale_isochrone_message()
+    if stale:
+        raise HTTPException(400, stale)
     if STATE['iso0'] is None or STATE['ext'] is None:
         raise HTTPException(400, 'Run "Apply Extinction & Fetch PARSEC" first: this step needs the isochrone, DM and A_V.')
     return d, STATE['iso0'], STATE['ext']

@@ -1985,9 +1985,17 @@
         window.gmmFilteredFileName = 'members_latest.csv';   // raw upload name (rawFileName) is left untouched
         showToast(`StarNest GMM complete (K=${data.stats.k})! Extracted ${data.stats.members} cluster members.`, 'success');
 
+        window._lastCmdMeta = null;            // so a previous cluster's "isochrone done" cannot decide for this one
         await computeCMDPlot();
         await computeKinematicsPlots();
-        await computeIMFPlots();
+        // The mass function needs isochrone masses. With the Python back end and no fetched PARSEC isochrone yet, running it now only paints a red
+        // error; it is re-run automatically when "Apply Extinction & Fetch PARSEC" succeeds (computeCMDPlot).
+        const _cm = window._lastCmdMeta, _isoDone = !!(_cm && _cm.workflow && _cm.workflow.parsec && _cm.workflow.parsec.state === 'done');
+        if ((_cm ? _cm.engine === 'python' : backendAlive === true) && !_isoDone) {   // no reply at all (e.g. 'press Apply' 400) counts as no isochrone
+          showToast('Mass function needs the PARSEC isochrone: open the Isochrone tab and press "Apply Extinction & Fetch PARSEC"; it then updates by itself.', 'info');
+        } else {
+          await computeIMFPlots();
+        }
       } catch (err) {
         showModuleError('gmm-error-box', 'gmm-error-text', err.message || String(err));
         showToast(err.message || 'GMM error', 'error');
@@ -2481,6 +2489,10 @@
             `;
           });
           statsBox.classList.remove('hidden');
+        }
+        // The isochrone masses behind the mass function were just (re)assigned: refresh it so a red banner from an earlier failed run cannot linger.
+        if (userClick && data.meta && data.meta.workflow && data.meta.workflow.parsec && data.meta.workflow.parsec.state === 'done' && getTaskFilename('imf')) {
+          computeIMFPlots({ silent: true });
         }
       } catch (err) {
         showModuleError('iso-error-box', 'iso-error-text', err.message || String(err));
@@ -3256,9 +3268,9 @@
       ['input-dist-mod', 'input-age', 'input-metallicity', 'input-ebv', 'input-iso-plxzp', 'input-use-cluster-dm'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-          el.addEventListener('change', () => {
+          el.addEventListener('change', async () => {
             if (getTaskFilename('isochrone')) {
-              computeCMDPlot();
+              await computeCMDPlot();          // wait: the IMF must read the table this refresh leaves behind, not the one before it
               if (id === 'input-age' && getTaskFilename('imf')) computeIMFPlots();
             }
           });
